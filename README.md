@@ -16,6 +16,7 @@
 | [specs/footprint-param-calibration-21d.md](specs/footprint-param-calibration-21d.md) | **21 天、每天 1 小時**的參數校準時程 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
 
