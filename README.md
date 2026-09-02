@@ -14,7 +14,10 @@
 | [specs/orderflow-rust-python-boundary.md](specs/orderflow-rust-python-boundary.md) | Rust 熱路徑 / Python 句子層；Binance、OKX、Bybit |
 | [specs/school-elements-expert-parameters.md](specs/school-elements-expert-parameters.md) | 專家出廠與教材數字（有出處，不編 SOL 常數） |
 | [specs/footprint-param-calibration-21d.md](specs/footprint-param-calibration-21d.md) | **21 天、每天 1 小時**的參數校準時程 |
-| [params/day2-sol-bucket.md](params/day2-sol-bucket.md) | 第 2 天：只校 SOL 桶寬（0.01→0.02→0.04） |
+| [params/day1-locked-setup.md](params/day1-locked-setup.md) | 第 1 天：大佬影片/教材鎖定的看圖定義 |
+| [params/day2-sol-bucket.md](params/day2-sol-bucket.md) | 第 2 天：SOL 桶寬，觀察用 0.01 |
+| [params/day3-sol-min-volume.md](params/day3-sol-min-volume.md) | 第 3 天：SOL 忽略 0 + 最小量 p25 |
+| [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
