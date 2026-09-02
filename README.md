@@ -20,10 +20,12 @@
 | [params/day4-sol-imbalance-rate.md](params/day4-sol-imbalance-rate.md) | 第 4 天：200 記錄；300∥400 武裝並列 |
 | [params/day5-sol-stack-direction.md](params/day5-sol-stack-direction.md) | 第 5 天：堆疊 3、棒向一致 |
 | [params/day6-sol-poc-va.md](params/day6-sol-poc-va.md) | 第 6 天：當根 POC / 70% VA |
-| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根太少；1499 根（含美盤）仍不選 300 vs 400 |
+| [params/day7-sol-unfinished-week1-freeze.md](params/day7-sol-unfinished-week1-freeze.md) | 第 7 天：未完成密度 + 第一週凍結 |
+| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根作廢；1790 根（亞歐美）仍不選 300 vs 400 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
-| [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡、重算校準表（不是 ATAS） |
+| [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡 |
+| [scripts/recompute_days_2_7.py](scripts/recompute_days_2_7.py) | 一次重跑第 2–7 天校準表 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
@@ -45,4 +47,4 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 ## 接下來
 
 按 [21 天時程](specs/footprint-param-calibration-21d.md) 填兩張觀察日誌。  
-21 天結束後才談影子程式，不談 live。
+第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週起看腳本 A–G 的失效畫面。21 天結束後才談影子程式，不談 live。
