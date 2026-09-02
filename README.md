@@ -20,7 +20,7 @@
 | [params/day4-sol-imbalance-rate.md](params/day4-sol-imbalance-rate.md) | 第 4 天：200 記錄；300∥400 武裝並列 |
 | [params/day5-sol-stack-direction.md](params/day5-sol-stack-direction.md) | 第 5 天：堆疊 3、棒向一致 |
 | [params/day6-sol-poc-va.md](params/day6-sol-poc-va.md) | 第 6 天：當根 POC / 70% VA |
-| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數夠不夠：59/224 根亞盤不能凍結 300 vs 400 |
+| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根太少；1499 根（含美盤）仍不選 300 vs 400 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡、重算校準表（不是 ATAS） |
