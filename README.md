@@ -17,6 +17,9 @@
 | [params/day1-locked-setup.md](params/day1-locked-setup.md) | 第 1 天：大佬影片/教材鎖定的看圖定義 |
 | [params/day2-sol-bucket.md](params/day2-sol-bucket.md) | 第 2 天：SOL 桶寬，觀察用 0.01 |
 | [params/day3-sol-min-volume.md](params/day3-sol-min-volume.md) | 第 3 天：SOL 忽略 0 + 最小量 p25 |
+| [params/day4-sol-imbalance-rate.md](params/day4-sol-imbalance-rate.md) | 第 4 天：200 記錄；300∥400 武裝並列 |
+| [params/day5-sol-stack-direction.md](params/day5-sol-stack-direction.md) | 第 5 天：堆疊 3、棒向一致 |
+| [params/day6-sol-poc-va.md](params/day6-sol-poc-va.md) | 第 6 天：當根 POC / 70% VA |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
