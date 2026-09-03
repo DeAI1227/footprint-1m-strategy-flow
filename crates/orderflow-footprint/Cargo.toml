@@ -1,0 +1,10 @@
+[package]
+name = "orderflow-footprint"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Stage 0 stub: per-venue 1m footprint matrix (wired in stage 2). Python must not build a second matrix."
+
+[dependencies]
+orderflow-domain.workspace = true

@@ -7,3 +7,13 @@
 secrets/
 __pycache__/
 *.pyc
+.pytest_cache/
+/target
+*.so
+*.dylib
+*.pyd
+.venv/
+dist/
+python/*.egg-info/
+python/orderflow.egg-info/
+crates/orderflow-py/*.egg-info/

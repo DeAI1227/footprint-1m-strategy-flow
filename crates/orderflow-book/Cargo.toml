@@ -1,0 +1,10 @@
+[package]
+name = "orderflow-book"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Stage 0 stub: per-venue L2 (wired in stage 3)."
+
+[dependencies]
+orderflow-domain.workspace = true

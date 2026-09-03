@@ -1,0 +1,23 @@
+[package]
+name = "orderflow-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "PyO3 bridge. Stage 0 exports the live gate; snapshots come later."
+
+[lib]
+name = "orderflow_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+orderflow-domain.workspace = true
+pyo3 = { workspace = true, features = ["macros"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["macros", "auto-initialize"] }

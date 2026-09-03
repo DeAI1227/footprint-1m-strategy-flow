@@ -4,7 +4,7 @@ overview: 三所公共 WS（Binance、OKX、Bybit）全接；OKX 自算 1 分鐘
 todos:
   - id: scaffold
     content: Cargo workspace + PyO3 + Python 套件、三所配置佔位、四種模式與 live 閘門
-    status: pending
+    status: completed
   - id: okx-1m-bars
     content: Rust：OKX 成交適配、1m 棒契約、品質向量、journal
     status: pending
@@ -125,8 +125,10 @@ Python（句子與維運）：
 
 ## 分階段交付（後一階段不得回頭改契約）
 
-**階段 0 — 專案與配置骨架**  
-Cargo workspace、PyO3、Python 套件、lint/test、`params/*.toml` 全佔位（含三所 endpoint 與共振模式）、模式開關、日誌 JSON（無密鑰）。此階段結束：能 `shadow` 啟動並因為「參數未校準」而拒絕 live。
+**階段 0 — 專案與配置骨架（已完成）**  
+Cargo workspace、PyO3、Python 套件、lint/test、`params/*.toml` 全佔位（含三所 endpoint 與共振模式）、模式開關、日誌 JSON（無密鑰）。  
+此階段結束：能 `shadow` 啟動並因為「參數未校準」而拒絕 live。  
+命令：`cargo run -p orderflowd -- --mode shadow --once` 與 `PYTHONPATH=python python3 -m orderflow --mode shadow --once`；`--mode live` / `live_small` 因 `calibration_complete = false`（觀察稿 ≠ 樣本外驗證）**拒絕**。執行 crate 即使把旗標翻開也下不了單。
 
 **階段 1 — OKX 公共成交 + 1m 棒契約（Rust）**  
 事件時間切棒、品質向量、暖機、journal。單測：亂序 / 晚到 / 重連不改寫已閉合棒。先只跑 SOL。

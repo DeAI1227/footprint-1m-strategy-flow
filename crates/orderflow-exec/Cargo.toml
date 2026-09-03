@@ -1,0 +1,10 @@
+[package]
+name = "orderflow-exec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Stage 0 stub: OKX execution. Live opens are impossible here."
+
+[dependencies]
+orderflow-domain.workspace = true

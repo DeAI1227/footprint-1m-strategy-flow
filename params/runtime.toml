@@ -1,0 +1,34 @@
+# Runtime / venues / live gate. No secrets, no API keys.
+# School: footprint only. Execution venue is OKX. Resonance computed, mode off.
+
+school = "footprint"
+mode_default = "shadow"
+execution_venue = "okx"
+resonance = "off"
+
+[calibration]
+# 21-day observation draft is not out-of-sample validation.
+status = "observation_draft"
+live_authorized = false
+out_of_sample_validated = false
+calibration_complete = false
+
+[risk]
+# Shared SOL/SUI beta cap. Number not calibrated. Placeholder only.
+shared_beta_cap_enabled = false
+
+[venues.okx]
+role = "execution"
+public_ws = "wss://ws.okx.com:8443/ws/v5/public"
+private_ws = "wss://ws.okx.com:8443/ws/v5/private"
+rest = "https://www.okx.com"
+
+[venues.binance]
+role = "resonance"
+public_ws = "wss://fstream.binance.com/ws"
+rest = "https://fapi.binance.com"
+
+[venues.bybit]
+role = "resonance"
+public_ws = "wss://stream.bybit.com/v5/public/linear"
+rest = "https://api.bybit.com"

@@ -1,0 +1,54 @@
+# SOL observation draft from params/day21-observation-freeze.md
+# Not out-of-sample. calibration_complete stays false. Forbidden: average Dale 300%
+# and Valtos 400% into 350%. Not ES 10/50 lots.
+
+symbol = "SOL"
+inst_id = "SOL-USDT-SWAP"
+okx_inst_id = "SOL-USDT-SWAP"
+binance_symbol = "SOLUSDT"
+bybit_symbol = "SOLUSDT"
+# OKX SWAP: ctVal=1 so sz is SOL, not a contract multiplier we invented.
+ct_val = 1.0
+tick_sz = 0.01
+bucket = 0.01
+
+# Min volume: session p25 of nonempty single-side cells, both diagonal sides.
+# Do not freeze an absolute SOL number; code must read this rule from toml.
+min_imbalance_volume_rule = "session_nonempty_side_p25_both"
+# Observation snapshots only (not frozen constants, not copied into source):
+# day3/day19: each session uses its own p25; thin session is not shut off.
+
+imbalance_style = "diagonal"
+imbalance_rate_record = 2.0
+imbalance_rate_dale = 3.0
+imbalance_rate_valtos = 4.0
+armed_rate_policy = "parallel"
+
+stack_min_levels = 3
+stack_require_bar_direction = true
+ignore_zero = true
+
+value_area_pct = 0.70
+value_area_scope = "bar"
+
+swing_n = 5
+leave_bars = 1
+trap_bars = 3
+
+unfinished_is_entry = false
+script_g_is_entry = false
+script_f = "not_evaluated"
+
+# Liquidation veto: rules, not a frozen USDT constant.
+liq_oi_1h_veto_pct = -0.02
+liq_1m_notional_rule = "sample_p95"
+
+# Funding black window: 00/08/16 UTC ±15m. Clock, not a kill-zone.
+funding_hours_utc = [0, 8, 16]
+funding_black_window_minutes = 15
+
+resonance = "off"
+language_runnable = true
+live_enabled = false
+calibration_complete = false
+out_of_sample_validated = false

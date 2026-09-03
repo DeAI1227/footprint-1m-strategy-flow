@@ -1,0 +1,10 @@
+[package]
+name = "orderflow-clock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Stage 0 stub: exchange-event 1m clock (wired in stage 1)."
+
+[dependencies]
+orderflow-domain.workspace = true

@@ -1,0 +1,53 @@
+# SUI separate table. Do not copy SOL bucket 0.01.
+# Observation draft from params/day21-observation-freeze.md
+# Language can run (not shadow_only). live still off.
+
+symbol = "SUI"
+inst_id = "SUI-USDT-SWAP"
+okx_inst_id = "SUI-USDT-SWAP"
+binance_symbol = "SUIUSDT"
+bybit_symbol = "SUIUSDT"
+# OKX SWAP: ctVal=1 so sz is SUI.
+ct_val = 1.0
+tick_sz = 0.0001
+bucket = 0.0001
+
+# Same rule language as SOL; numbers stay on this table.
+min_imbalance_volume_rule = "session_nonempty_side_p25_both"
+# p25 snapshots as comments only (SUI, not frozen constants):
+# asia≈319 / eu≈277 / us≈228 / thin≈198 SUI
+
+imbalance_style = "diagonal"
+imbalance_rate_record = 2.0
+imbalance_rate_dale = 3.0
+imbalance_rate_valtos = 4.0
+armed_rate_policy = "parallel"
+
+stack_min_levels = 3
+stack_require_bar_direction = true
+ignore_zero = true
+
+value_area_pct = 0.70
+value_area_scope = "bar"
+
+swing_n = 5
+leave_bars = 1
+trap_bars = 3
+
+unfinished_is_entry = false
+script_g_is_entry = false
+script_f = "not_evaluated"
+
+liq_oi_1h_veto_pct = -0.02
+liq_1m_notional_rule = "sample_p95"
+
+funding_hours_utc = [0, 8, 16]
+funding_black_window_minutes = 15
+
+resonance = "off"
+# Language may run in shadow/sim. This is not a live authorization.
+shadow_only = false
+language_runnable = true
+live_enabled = false
+calibration_complete = false
+out_of_sample_validated = false

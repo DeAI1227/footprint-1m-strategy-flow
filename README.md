@@ -3,7 +3,20 @@
 死守**足跡圖流派**的 SOL / SUI 1 分鐘訂單流規格與參數校準。  
 不是形態學、不是 Market Profile、不是 VWAP、不是 ICT。
 
-目前這個 repo 只放規格與觀察日誌。參數沒校完之前，不寫實盤、不開 live。
+目前這個 repo 有規格、觀察日誌，以及**階段 0 骨架**：`orderflowd` / `python -m orderflow` 能以 `shadow` 啟動，並硬拒絕 live。還沒有 WS、足跡熱路徑、也沒有下單。**交易系統尚未運行。**
+
+## 啟動（階段 0）
+
+```bash
+make test
+# 或分開（Rust 1.85+、Python 3.12+）：
+cargo test --workspace --exclude orderflow-py
+cargo run -p orderflowd -- --mode shadow --once
+PYTHONPATH=python python3 -m orderflow --mode shadow --once
+cargo run -p orderflowd -- --mode live --once    # 必須失敗：params_not_calibrated
+```
+
+配置：[`params/runtime.toml`](params/runtime.toml)、[`params/sol.toml`](params/sol.toml)、[`params/sui.toml`](params/sui.toml)。數字只從 toml 讀，程式裡不准寫死 400%。300∥400 仍是 `parallel`。`calibration_complete = false`，`live_enabled = false`。觀察稿不是樣本外驗證。
 
 ## 文件
 
@@ -34,7 +47,11 @@
 | [params/day18-sol-liq-oi-veto.md](params/day18-sol-liq-oi-veto.md) | 第 18 天：OI −2% / 強平 p95 否決 |
 | [params/day19-sol-session-funding.md](params/day19-sol-session-funding.md) | 第 19 天：極薄 vs 美盤；資金費 ±15m 黑窗 |
 | [params/day20-sol-three-venue.md](params/day20-sol-three-venue.md) | 第 20 天：三所只比方向；共振 `off` |
-| [params/day21-observation-freeze.md](params/day21-observation-freeze.md) | 第 21 天：兩張觀察稿；禁止 live |
+| [params/sol.toml](params/sol.toml) | SOL 觀察稿數字（程式讀這個，不是 day markdown） |
+| [params/sui.toml](params/sui.toml) | SUI 分表 |
+| [params/runtime.toml](params/runtime.toml) | 模式、三所 endpoint、live 閘門、共振 `off` |
+| [crates/orderflowd](crates/orderflowd) | 階段 0 行程：shadow 可開、live 拒絕 |
+| [python/orderflow](python/orderflow) | 句子層套件（階段 0 只轉呼叫 orderflowd） |
 | [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根作廢；1790 根仍不選 300 vs 400；週 2 用 3060 根只數失敗畫面 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
@@ -63,5 +80,5 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 
 ## 接下來
 
-按 [21 天時程](specs/footprint-param-calibration-21d.md) 填兩張觀察日誌。  
-第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結（`LEAVE_BARS=1`、`TRAP_BARS=3`、F `not_evaluated`、G 仍不開倉）。第三週 SUI 分表與制度否決已凍結（SUI 桶 0.0001；清算/OI 否決；資金費黑窗；共振 `off`）。**參數未在樣本外驗證前禁止 live。**
+第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結。第三週 SUI 分表與制度否決已凍結。  
+**階段 0 骨架已進 repo**：shadow 可啟動，live 因觀察稿未樣本外驗證而拒絕。下一框是階段 1（OKX 公共成交 + 1m 棒契約）。**禁止 live。**
