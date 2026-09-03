@@ -170,17 +170,35 @@ impl fmt::Display for LiveDenied {
     }
 }
 
+/// Floor exchange event time to the 1m bar open `[t, t+60_000)`.
+pub fn bar_open_ms(event_ts_ms: i64) -> i64 {
+    event_ts_ms - event_ts_ms.rem_euclid(BAR_INTERVAL_MS)
+}
+
 /// Normalized public trade. Adapters must emit `taker_buy` / `taker_sell` only.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trade {
     pub venue: Venue,
     pub symbol: String,
+    #[serde(default)]
+    pub trade_id: Option<String>,
     pub event_ts_ms: i64,
     pub recv_ts_ms: i64,
     pub processed_ts_ms: i64,
     pub price: f64,
     pub size: f64,
     pub taker_side: TakerSide,
+}
+
+impl Trade {
+    pub fn bar_open_ms(&self) -> i64 {
+        bar_open_ms(self.event_ts_ms)
+    }
+
+    /// Taker buy hits the ask; taker sell hits the bid.
+    pub fn is_taker_buy(&self) -> bool {
+        matches!(self.taker_side, TakerSide::Buy)
+    }
 }
 
 /// 1m bar on exchange event time `[open_ms, open_ms+60_000)`.
@@ -192,6 +210,17 @@ pub struct Bar1m {
     pub symbol: String,
     pub open_ms: i64,
     pub state: BarState,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    /// Taker-sell volume (hits bid).
+    pub bid_vol: f64,
+    /// Taker-buy volume (hits ask).
+    pub ask_vol: f64,
+    pub trade_count: u32,
+    pub first_trade_ts_ms: i64,
+    pub last_trade_ts_ms: i64,
 }
 
 impl Bar1m {
@@ -202,12 +231,30 @@ impl Bar1m {
     pub fn entries_allowed(&self) -> bool {
         matches!(self.state, BarState::Closed)
     }
+
+    pub fn delta(&self) -> f64 {
+        self.ask_vol - self.bid_vol
+    }
+
+    pub fn volume(&self) -> f64 {
+        self.ask_vol + self.bid_vol
+    }
+
+    pub fn into_closed(mut self) -> Self {
+        self.state = BarState::Closed;
+        self
+    }
 }
 
 /// Per-venue quality. Do not sum venue volumes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct QualityVector {
     pub late_trade: u32,
+    pub out_of_order: u32,
+    pub reconnect: u32,
+    pub gap_minutes: u32,
+    pub trades_seen: u64,
+    pub bars_closed: u64,
     pub okx_gap: bool,
     pub binance_gap: bool,
     pub bybit_gap: bool,
@@ -594,14 +641,26 @@ mod tests {
             symbol: "SOL".into(),
             open_ms: 0,
             state: BarState::Closed,
+            open: 100.0,
+            high: 101.0,
+            low: 99.0,
+            close: 100.5,
+            bid_vol: 1.0,
+            ask_vol: 2.0,
+            trade_count: 2,
+            first_trade_ts_ms: 0,
+            last_trade_ts_ms: 1,
         };
         assert!(bar.entries_allowed());
         assert_eq!(bar.close_ms(), BAR_INTERVAL_MS);
+        assert_eq!(bar.delta(), 1.0);
         let forming = Bar1m {
             state: BarState::Forming,
             ..bar.clone()
         };
         assert!(!forming.entries_allowed());
+        assert_eq!(bar_open_ms(61_000), 60_000);
+        assert_eq!(bar_open_ms(59_999), 0);
     }
 
     #[test]

@@ -4,7 +4,13 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Stage 0 stub: Binance / OKX / Bybit public adapters (wired in stage 1/1b)."
+description = "OKX public trade normalize + JSONL replay (Binance/Bybit stage 1b)."
 
 [dependencies]
 orderflow-domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+orderflow-clock = { path = "../orderflow-clock" }
+tempfile = "3"

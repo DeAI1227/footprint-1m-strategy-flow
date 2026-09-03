@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: okx-1m-bars
     content: Rust：OKX 成交適配、1m 棒契約、品質向量、journal
-    status: pending
+    status: completed
   - id: three-venue-ws
     content: Rust：Binance 與 Bybit 公共 WS 適配（taker 方向黃金測試）與分所品質
     status: pending

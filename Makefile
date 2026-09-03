@@ -1,4 +1,4 @@
-.PHONY: test shadow live-deny native fmt
+.PHONY: test shadow live-deny native fmt replay
 
 shadow:
 	cargo run -p orderflowd -- --mode shadow --once
@@ -7,6 +7,9 @@ shadow:
 live-deny:
 	- cargo run -p orderflowd -- --mode live --once
 	- PYTHONPATH=python python3 -m orderflow --mode live --once
+
+replay:
+	cargo run -p orderflowd -- --mode shadow --replay /tmp/sol_okx_trades.jsonl --max-trades 5000 --journal /tmp/sol_bars_closed.jsonl
 
 test:
 	cargo test --workspace --exclude orderflow-py

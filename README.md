@@ -3,9 +3,9 @@
 死守**足跡圖流派**的 SOL / SUI 1 分鐘訂單流規格與參數校準。  
 不是形態學、不是 Market Profile、不是 VWAP、不是 ICT。
 
-目前這個 repo 有規格、觀察日誌，以及**階段 0 骨架**：`orderflowd` / `python -m orderflow` 能以 `shadow` 啟動，並硬拒絕 live。還沒有 WS、足跡熱路徑、也沒有下單。**交易系統尚未運行。**
+目前這個 repo 有規格、觀察日誌、階段 0 骨架，以及**階段 1：OKX 事件時間 1m 棒切刀 + JSONL replay**。還沒有正式 WS 長連、足跡矩陣、L2、也沒有下單。**live 仍硬拒絕。**
 
-## 啟動（階段 0）
+## 啟動
 
 ```bash
 make test
@@ -14,9 +14,12 @@ cargo test --workspace --exclude orderflow-py
 cargo run -p orderflowd -- --mode shadow --once
 PYTHONPATH=python python3 -m orderflow --mode shadow --once
 cargo run -p orderflowd -- --mode live --once    # 必須失敗：params_not_calibrated
+
+# 階段 1：用 OKX 公共成交 JSONL 重放切棒（最後一根 forming 不當作已收盤）
+cargo run -p orderflowd -- --mode shadow --replay /tmp/sol_okx_trades.jsonl --max-trades 5000 --journal /tmp/sol_bars_closed.jsonl
 ```
 
-配置：[`params/runtime.toml`](params/runtime.toml)、[`params/sol.toml`](params/sol.toml)、[`params/sui.toml`](params/sui.toml)。數字只從 toml 讀，程式裡不准寫死 400%。300∥400 仍是 `parallel`。`calibration_complete = false`，`live_enabled = false`。觀察稿不是樣本外驗證。
+配置：[`params/runtime.toml`](params/runtime.toml)、[`params/sol.toml`](params/sol.toml)、[`params/sui.toml`](params/sui.toml)。數字只從 toml 讀。執行所仍是 OKX；共振預設 `off`。觀察稿不是樣本外驗證。
 
 ## 文件
 
@@ -81,4 +84,6 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 ## 接下來
 
 第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結。第三週 SUI 分表與制度否決已凍結。  
-**階段 0 骨架已進 repo**：shadow 可啟動，live 因觀察稿未樣本外驗證而拒絕。下一框是階段 1（OKX 公共成交 + 1m 棒契約）。**禁止 live。**
+**階段 0**：shadow 可啟動，live 硬拒絕。  
+**階段 1**：OKX 成交正規化 + 事件時間 1m 切棒（閉合不可改寫）+ JSONL replay / journal。  
+下一框是階段 1b（Binance / Bybit 公共 WS）或階段 2（足跡矩陣）。**禁止 live。**

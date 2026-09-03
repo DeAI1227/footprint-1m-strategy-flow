@@ -1,5 +1,7 @@
 # orderflow-ingest
 
-階段 0 佔位。階段 1 / 1b 才接 Binance、OKX、Bybit 公共 WS。
+階段 1：OKX 公共成交正規化（`side=buy` → taker buy）+ JSONL replay + 閉合棒 journal。
 
-行程 `orderflowd` 已用 Tokio runtime；本 crate 階段 1 才開連線。禁止把外所價填進 OKX 訂單。
+階段 1b 才接 Binance / Bybit 公共 WS。Bybit taker 方向必須先有黃金測試。
+
+禁止把外所價填進 OKX 訂單。三所成交量不加總。
