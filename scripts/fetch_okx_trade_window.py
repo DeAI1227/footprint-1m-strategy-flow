@@ -13,7 +13,6 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-INST = "SOL-USDT-SWAP"
 URL = "https://www.okx.com/api/v5/market/history-trades"
 UA = {"User-Agent": "footprint-1m-calibration/0.1"}
 
@@ -22,8 +21,8 @@ def iso(ts_ms: int) -> str:
     return datetime.fromtimestamp(ts_ms / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-def fetch_page(after_id: str, limit: int = 100) -> list[dict]:
-    q = urllib.parse.urlencode({"instId": INST, "limit": str(limit), "after": after_id})
+def fetch_page(inst_id: str, after_id: str, limit: int = 100) -> list[dict]:
+    q = urllib.parse.urlencode({"instId": inst_id, "limit": str(limit), "after": after_id})
     req = urllib.request.Request(f"{URL}?{q}", headers=UA)
     with urllib.request.urlopen(req, timeout=20) as resp:
         body = json.loads(resp.read().decode())
@@ -38,17 +37,18 @@ def main() -> int:
     ap.add_argument("--after-id", required=True, help="tradeId newer than the window (exclusive)")
     ap.add_argument("--until-ts-ms", type=int, required=True)
     ap.add_argument("--max-pages", type=int, default=8000)
+    ap.add_argument("--inst", default="SOL-USDT-SWAP")
     args = ap.parse_args()
 
     after_id = str(args.after_id)
     pages = added = 0
     oldest_ts = None
     t0 = time.time()
-    print(f"window after={after_id} until={iso(args.until_ts_ms)} -> {args.path}", flush=True)
+    print(f"window inst={args.inst} after={after_id} until={iso(args.until_ts_ms)} -> {args.path}", flush=True)
     with open(args.path, "w") as out:
         while pages < args.max_pages:
             try:
-                rows = fetch_page(after_id)
+                rows = fetch_page(args.inst, after_id)
             except Exception as e:
                 print(f"error {e!r}; sleep 1.5s", flush=True)
                 time.sleep(1.5)

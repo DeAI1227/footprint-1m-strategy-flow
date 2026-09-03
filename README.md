@@ -28,12 +28,21 @@
 | [params/day12-sol-script-e.md](params/day12-sol-script-e.md) | 第 12 天：腳本 E；第一次 CVD 背離不反手 |
 | [params/day13-sol-script-f.md](params/day13-sol-script-f.md) | 第 13 天：腳本 F；無 L2 → `not_evaluated` |
 | [params/day14-sol-week2-freeze.md](params/day14-sol-week2-freeze.md) | 第 14 天：腳本 G + 第二週凍結 |
+| [params/day15-sui-bucket.md](params/day15-sui-bucket.md) | 第 15 天：SUI 桶寬 0.0001；禁止抄 SOL 0.01 |
+| [params/day16-sui-min-volume.md](params/day16-sui-min-volume.md) | 第 16 天：SUI 時段 p25；300∥400 仍並列 |
+| [params/day17-sui-script-a.md](params/day17-sui-script-a.md) | 第 17 天：SUI 驗證 A；打穿約 23% |
+| [params/day18-sol-liq-oi-veto.md](params/day18-sol-liq-oi-veto.md) | 第 18 天：OI −2% / 強平 p95 否決 |
+| [params/day19-sol-session-funding.md](params/day19-sol-session-funding.md) | 第 19 天：極薄 vs 美盤；資金費 ±15m 黑窗 |
+| [params/day20-sol-three-venue.md](params/day20-sol-three-venue.md) | 第 20 天：三所只比方向；共振 `off` |
+| [params/day21-observation-freeze.md](params/day21-observation-freeze.md) | 第 21 天：兩張觀察稿；禁止 live |
 | [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根作廢；1790 根仍不選 300 vs 400；週 2 用 3060 根只數失敗畫面 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡 |
 | [scripts/recompute_days_2_7.py](scripts/recompute_days_2_7.py) | 一次重跑第 2–7 天校準表 |
 | [scripts/week2_scripts_a_g.py](scripts/week2_scripts_a_g.py) | 週 2：劇本 A–G 失敗畫面（F 因無 L2 標 not_evaluated） |
+| [scripts/week3_sui_regime.py](scripts/week3_sui_regime.py) | 週 3：SUI 分表 + 清算/黑窗 + 三所方向 |
+| [scripts/fetch_week3_inputs.py](scripts/fetch_week3_inputs.py) | 週 3 輸入：SUI 成交/K 線、OI、強平、Binance/Bybit 日檔 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
@@ -55,4 +64,4 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 ## 接下來
 
 按 [21 天時程](specs/footprint-param-calibration-21d.md) 填兩張觀察日誌。  
-第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結（`LEAVE_BARS=1`、`TRAP_BARS=3`、F `not_evaluated`、G 仍不開倉）。第三週才開 SUI 分表與制度否決。21 天結束後才談影子程式，不談 live。
+第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結（`LEAVE_BARS=1`、`TRAP_BARS=3`、F `not_evaluated`、G 仍不開倉）。第三週 SUI 分表與制度否決已凍結（SUI 桶 0.0001；清算/OI 否決；資金費黑窗；共振 `off`）。**參數未在樣本外驗證前禁止 live。**

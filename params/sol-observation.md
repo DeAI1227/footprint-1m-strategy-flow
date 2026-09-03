@@ -233,16 +233,58 @@ POC / VA（`params/day6-sol-poc-va.md`）：
 
 ## 第 3 週
 
+壓縮計算（2026-09-03）。第 15–17 天在 SUI 表。第 18–20 天制度課仍寫在本 SOL 日誌。第 21 天總稿：`params/day21-observation-freeze.md`。
+
 ### 2026-09-15
+
+SUI 桶寬課。SOL 不改。見 `params/sui-observation.md` 與 `params/day15-sui-bucket.md`。
 
 ### 2026-09-16
 
+SUI 最小量課。SOL 不改。見 `params/day16-sui-min-volume.md`。
+
 ### 2026-09-17
+
+SUI 驗證 A。SOL 的 `LEAVE_BARS=1` 不因 SUI 打穿 23% 而放寬。見 `params/day17-sui-script-a.md`。
 
 ### 2026-09-18
 
+日期：2026-09-18（時程第 18 天）  
+今日唯一問題：清算 / OI 只做否決。
+
+- SOL 1H OI ≤ −2%：50 天 14 次；足跡窗內 **09-02 13:00 −2.54%**
+- 強平分鐘 p95 疊上 300% 一致 3 檔：4/231
+- 那些棒不當建倉。新開倉關。
+
+詳見 `params/day18-sol-liq-oi-veto.md`。
+
+禁止項自檢：沒有畫爆倉地圖；沒有獵 squeeze。
+
 ### 2026-09-19
+
+日期：2026-09-19（時程第 19 天）  
+今日唯一問題：極薄 vs 美盤密度；資金費黑窗。
+
+- 美盤一致 3 檔 8.6% vs 極薄 7.2%
+- 00/08/16 UTC ±15m：一致 3 檔 4.3% vs 窗外 7.8%。仍會開火，不准進場。
+
+詳見 `params/day19-sol-session-funding.md`。
+
+禁止項自檢：沒有 Kill Zone；沒有把 % 加到 450。
 
 ### 2026-09-20
 
+日期：2026-09-20（時程第 20 天）  
+今日唯一問題：三所只比方向。
+
+- OKX–BN 70.5%、OKX–BY 67%、三所全同向 54%
+- 缺 Binance 日檔的分鐘 `not_evaluated`。共振維持 `off`。
+
+詳見 `params/day20-sol-three-venue.md`。
+
+禁止項自檢：沒有把外所價填進 OKX；沒有加總成交量。
+
 ### 2026-09-21
+
+日期：2026-09-21（時程第 21 天）  
+21 日觀察稿。SOL 眼睛與句子層維持週 1–2。加上否決與黑窗。**禁止 live。** 詳見 `params/day21-observation-freeze.md`。
