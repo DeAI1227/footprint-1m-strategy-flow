@@ -21,11 +21,19 @@
 | [params/day5-sol-stack-direction.md](params/day5-sol-stack-direction.md) | 第 5 天：堆疊 3、棒向一致 |
 | [params/day6-sol-poc-va.md](params/day6-sol-poc-va.md) | 第 6 天：當根 POC / 70% VA |
 | [params/day7-sol-unfinished-week1-freeze.md](params/day7-sol-unfinished-week1-freeze.md) | 第 7 天：未完成密度 + 第一週凍結 |
-| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根作廢；1790 根（亞歐美）仍不選 300 vs 400 |
+| [params/day8-sol-script-a.md](params/day8-sol-script-a.md) | 第 8 天：腳本 A；`LEAVE_BARS=1` |
+| [params/day9-sol-script-b.md](params/day9-sol-script-b.md) | 第 9 天：腳本 B；關鍵位第二次打穿約一半 |
+| [params/day10-sol-script-c.md](params/day10-sol-script-c.md) | 第 10 天：腳本 C；`TRAP_BARS=3` |
+| [params/day11-sol-script-d.md](params/day11-sol-script-d.md) | 第 11 天：腳本 D；接受後回踩仍會打穿 |
+| [params/day12-sol-script-e.md](params/day12-sol-script-e.md) | 第 12 天：腳本 E；第一次 CVD 背離不反手 |
+| [params/day13-sol-script-f.md](params/day13-sol-script-f.md) | 第 13 天：腳本 F；無 L2 → `not_evaluated` |
+| [params/day14-sol-week2-freeze.md](params/day14-sol-week2-freeze.md) | 第 14 天：腳本 G + 第二週凍結 |
+| [params/sample-size-verdict.md](params/sample-size-verdict.md) | 跟數：59 根作廢；1790 根仍不選 300 vs 400；週 2 用 3060 根只數失敗畫面 |
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡 |
 | [scripts/recompute_days_2_7.py](scripts/recompute_days_2_7.py) | 一次重跑第 2–7 天校準表 |
+| [scripts/week2_scripts_a_g.py](scripts/week2_scripts_a_g.py) | 週 2：劇本 A–G 失敗畫面（F 因無 L2 標 not_evaluated） |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
@@ -47,4 +55,4 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 ## 接下來
 
 按 [21 天時程](specs/footprint-param-calibration-21d.md) 填兩張觀察日誌。  
-第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週起看腳本 A–G 的失效畫面。21 天結束後才談影子程式，不談 live。
+第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結（`LEAVE_BARS=1`、`TRAP_BARS=3`、F `not_evaluated`、G 仍不開倉）。第三週才開 SUI 分表與制度否決。21 天結束後才談影子程式，不談 live。
