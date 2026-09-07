@@ -280,7 +280,12 @@ dependencies = [
 name = "orderflow-footprint"
 version = "0.0.0"
 dependencies = [
+ "orderflow-clock",
  "orderflow-domain",
+ "orderflow-ingest",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -307,9 +312,9 @@ dependencies = [
 name = "orderflowd"
 version = "0.0.0"
 dependencies = [
- "orderflow-clock",
  "orderflow-domain",
  "orderflow-exec",
+ "orderflow-footprint",
  "orderflow-ingest",
  "serde_json",
  "tokio",

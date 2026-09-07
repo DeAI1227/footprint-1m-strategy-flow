@@ -54,6 +54,17 @@ impl JsonlJournal {
         Ok(())
     }
 
+    pub fn append_json<T: Serialize>(&self, rec: &T) -> Result<(), String> {
+        let mut f = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.path)
+            .map_err(|e| format!("open {}: {e}", self.path.display()))?;
+        let line = serde_json::to_string(rec).map_err(|e| e.to_string())?;
+        writeln!(f, "{line}").map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
