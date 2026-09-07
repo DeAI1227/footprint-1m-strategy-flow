@@ -4,7 +4,13 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Stage 0 stub: per-venue L2 (wired in stage 3)."
+description = "Per-venue L2: seq/checksum health, walls, footprint read flags. Toxic book → not_evaluated."
 
 [dependencies]
 orderflow-domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+crc32fast = "1"
+
+[dev-dependencies]
+tempfile = "3"

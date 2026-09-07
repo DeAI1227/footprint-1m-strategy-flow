@@ -302,6 +302,22 @@ impl QualityVector {
             Venue::Bybit => self.bybit_gap,
         }
     }
+
+    pub fn set_book_ok(&mut self, venue: Venue, ok: bool) {
+        match venue {
+            Venue::Okx => self.okx_book_ok = ok,
+            Venue::Binance => self.binance_book_ok = ok,
+            Venue::Bybit => self.bybit_book_ok = ok,
+        }
+    }
+
+    pub fn book_ok(&self, venue: Venue) -> bool {
+        match venue {
+            Venue::Okx => self.okx_book_ok,
+            Venue::Binance => self.binance_book_ok,
+            Venue::Bybit => self.bybit_book_ok,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

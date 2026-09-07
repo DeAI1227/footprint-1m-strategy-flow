@@ -1,4 +1,4 @@
-.PHONY: test shadow live-deny native fmt replay replay-three
+.PHONY: test shadow live-deny native fmt replay replay-three book-replay
 
 shadow:
 	cargo run -p orderflowd -- --mode shadow --once
@@ -17,6 +17,10 @@ replay-three:
 		--replay-binance /tmp/sol_binance_agg.jsonl \
 		--replay-bybit /tmp/sol_bybit_trades.csv \
 		--max-trades 5000
+
+book-replay:
+	cargo run -p orderflowd -- --mode shadow \
+		--book-replay crates/orderflow-book/tests/fixtures/sol_okx_books.jsonl
 
 
 test:
