@@ -39,6 +39,10 @@ trap_bars = 3
 unfinished_is_entry = false
 script_g_is_entry = false
 script_f = "not_evaluated"
+# Observation placeholders. Not live authorization.
+warmup_bars = 5
+cooldown_bars = 5
+script_e_reverse = false
 
 # Liquidation veto: rules, not a frozen USDT constant.
 liq_oi_1h_veto_pct = -0.02

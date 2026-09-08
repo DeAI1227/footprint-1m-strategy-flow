@@ -1,57 +1,34 @@
-"""Shared disabled state-machine stub. Not wired until stage 5."""
+"""A–G machines. Lifecycle inactive → watch → armed → … → cooldown."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
-
-@dataclass
-class ScriptStub:
-    name: str
-    is_entry: bool = True
-    wired: bool = False
-    enabled: bool = False
-    state: str = "inactive"
-    evaluation: str = "disabled"
-    notes: dict[str, Any] = field(default_factory=dict)
-
-    def step(self, _snapshot: Any = None) -> dict[str, Any]:
-        return self.snapshot()
-
-    def snapshot(self) -> dict[str, Any]:
-        return {
-            "script": self.name,
-            "wired": self.wired,
-            "enabled": self.enabled,
-            "state": self.state,
-            "is_entry": self.is_entry,
-            "evaluation": self.evaluation,
-            **self.notes,
-        }
+from orderflow.scripts.eval import EVALUATORS, View
+from orderflow.scripts.machine import ScriptMachine
 
 
-class ScriptA(ScriptStub):
+class ScriptA(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(name="A", is_entry=True, notes={"leave_bars_from_toml": True})
 
 
-class ScriptB(ScriptStub):
+class ScriptB(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(name="B", is_entry=True)
 
 
-class ScriptC(ScriptStub):
+class ScriptC(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(name="C", is_entry=True, notes={"trap_bars_from_toml": True})
 
 
-class ScriptD(ScriptStub):
+class ScriptD(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(name="D", is_entry=True)
 
 
-class ScriptE(ScriptStub):
+class ScriptE(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(
             name="E",
@@ -60,7 +37,7 @@ class ScriptE(ScriptStub):
         )
 
 
-class ScriptF(ScriptStub):
+class ScriptF(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(
             name="F",
@@ -70,7 +47,7 @@ class ScriptF(ScriptStub):
         )
 
 
-class ScriptG(ScriptStub):
+class ScriptG(ScriptMachine):
     def __init__(self) -> None:
         super().__init__(name="G", is_entry=False)
 
@@ -79,7 +56,16 @@ class UnfinishedAuction:
     """Display-only. Not an entry."""
 
     is_entry = False
-    wired = False
+    wired = True
 
     def snapshot(self) -> dict[str, Any]:
-        return {"kind": "unfinished_auction", "is_entry": False, "wired": False}
+        return {
+            "kind": "unfinished_auction",
+            "is_entry": False,
+            "wired": True,
+            "evaluation": "display",
+        }
+
+
+def preview(name: str, hist: list[Any], params: dict[str, Any]) -> View:
+    return EVALUATORS[name](hist, params)

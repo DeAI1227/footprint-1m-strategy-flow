@@ -1,7 +1,7 @@
-"""Sentence layer package. Stage 0: read params, boot shadow, refuse live.
+"""Sentence layer package. Read params, boot shadow, refuse live.
 
-Do not parse venue WebSocket or assemble footprint matrices here.
-The production footprint matrix lives in Rust (not wired yet).
+Stage 5: A–G machines read frozen Rust 1m snapshots. Do not parse venue
+WebSocket or assemble a second footprint matrix here.
 """
 
 from .boot import LiveDenied, boot_once, live_allowed

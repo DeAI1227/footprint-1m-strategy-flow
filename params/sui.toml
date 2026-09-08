@@ -38,6 +38,9 @@ trap_bars = 3
 unfinished_is_entry = false
 script_g_is_entry = false
 script_f = "not_evaluated"
+warmup_bars = 5
+cooldown_bars = 5
+script_e_reverse = false
 
 liq_oi_1h_veto_pct = -0.02
 liq_1m_notional_rule = "sample_p95"

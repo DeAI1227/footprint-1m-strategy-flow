@@ -1,7 +1,6 @@
-# Stage 0: lifecycle stubs only. State machines land in stage 5.
 # inactive → watch → armed → executed → manage → exit → cooldown
-# One main script in_position per symbol. E does not reverse on first divergence.
-# G is not an entry. F stays not_evaluated without L2.
+# One main script armed per symbol. E does not reverse on first divergence.
+# G is not an entry. F stays not_evaluated without a healthy L2.
 # Unfinished auction is display-only.
 
 from .a import ScriptA
@@ -11,20 +10,20 @@ from .d import ScriptD
 from .e import ScriptE
 from .f import ScriptF
 from .g import ScriptG
+from .machine import HOLD, LIFECYCLE, ScriptMachine
 from .unfinished import UnfinishedAuction
 
-__all__ = ["SCRIPTS", "LIFECYCLE", "STUBS", "UnfinishedAuction", "all_disabled"]
+__all__ = [
+    "SCRIPTS",
+    "LIFECYCLE",
+    "HOLD",
+    "STUBS",
+    "UnfinishedAuction",
+    "all_disabled",
+    "ScriptMachine",
+]
 
 SCRIPTS = ("A", "B", "C", "D", "E", "F", "G")
-LIFECYCLE = (
-    "inactive",
-    "watch",
-    "armed",
-    "executed",
-    "manage",
-    "exit",
-    "cooldown",
-)
 
 STUBS = {
     "A": ScriptA,
@@ -38,4 +37,5 @@ STUBS = {
 
 
 def all_disabled() -> dict[str, dict]:
+    """Fresh machines: wired, inactive. F stays not_evaluated until a book is present."""
     return {name: cls().snapshot() for name, cls in STUBS.items()}

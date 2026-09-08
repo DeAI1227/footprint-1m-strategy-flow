@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: scripts-decision
     content: Python：腳本 A–G 狀態機、互斥、讀 Rust 凍結快照
-    status: pending
+    status: completed
   - id: risk-sim-exec
     content: Rust 執行/風控熱路徑 + Python 對帳編排；模擬撮合、kill switch
     status: pending
@@ -145,8 +145,8 @@ bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用�
 **階段 4 — 位置與制度 + 共振欄位（已完成）**  
 近窗量堆 / 擺動 / 量堆被接受旗標 / 清算與擁擠旗標。不算 VWAP、不算日盤 Profile。三所方向寫進快照；共振預設 `off`（仍記錄），不驅動下單價。Replay：`--regime-replay PATH`（OI / 強平 / 資金費 sidecar）。缺流 → `not_evaluated`。live 仍拒絕。
 
-**階段 5 — 腳本狀態機 A–G + 決策快照（Python 讀 Rust 快照）**  
-全進影子日誌。互斥、cooldown、硬否決表一次做完，不要先做 A 再漏否決。
+**階段 5 — 腳本狀態機 A–G + 決策快照（Python 讀 Rust 快照，已完成）**  
+全進影子日誌。互斥、cooldown、硬否決表一次做完。G 不當進場；F 無健康 L2 則 `not_evaluated`；E 第一次背離不反手。`--journal` 讀 Rust JSONL。live 仍拒絕。
 
 **階段 6 — 模擬撮合 + 風控 + 對帳**  
 本地用即時盤口假成交；kill switch、日虧、距強平緩衝、降載順序。無 API 金鑰也必須能跑完這段測試。
