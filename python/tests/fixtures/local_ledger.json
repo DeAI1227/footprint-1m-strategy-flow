@@ -1,0 +1,8 @@
+{
+  "working": [
+    {"client_id": "of-ghost", "symbol": "SOL", "side": "buy", "limit_px": 100.0, "qty": 1}
+  ],
+  "positions": [
+    {"symbol": "SOL", "qty": 1, "avg_px": 100.0, "mark": 100.0}
+  ]
+}

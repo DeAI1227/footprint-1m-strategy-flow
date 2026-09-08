@@ -25,7 +25,7 @@ todos:
     status: completed
   - id: risk-sim-exec
     content: Rust 執行/風控熱路徑 + Python 對帳編排；模擬撮合、kill switch
-    status: pending
+    status: completed
   - id: tokyo-ops
     content: 監督運行、漏棒、規格變更、SUI 影子並行、三所 WS 互不阻塞
     status: pending
@@ -148,8 +148,8 @@ bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用�
 **階段 5 — 腳本狀態機 A–G + 決策快照（Python 讀 Rust 快照，已完成）**  
 全進影子日誌。互斥、cooldown、硬否決表一次做完。G 不當進場；F 無健康 L2 則 `not_evaluated`；E 第一次背離不反手。`--journal` 讀 Rust JSONL。live 仍拒絕。
 
-**階段 6 — 模擬撮合 + 風控 + 對帳**  
-本地用即時盤口假成交；kill switch、日虧、距強平緩衝、降載順序。無 API 金鑰也必須能跑完這段測試。
+**階段 6 — 模擬撮合 + 風控 + 對帳（已完成）**  
+本地用 OKX 盤口假成交（排隊 + 部分成交）；kill switch 持久化、日虧、距強平緩衝、降載順序（研究 → 低權重 → 開倉 → 最後才動平倉/風控）。Python 對帳編排比對 fixture（交易所為真）。無 API 金鑰也能跑完。live 仍拒絕。OKX 私有流是階段 7。
 
 **階段 7 — 執行網關（仍默認 shadow）**  
 接私有流，但 live 開關與參數校準閘門雙鎖。SUI 影子並行，參數檔獨立。

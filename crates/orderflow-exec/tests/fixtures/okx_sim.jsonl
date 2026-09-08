@@ -1,0 +1,4 @@
+{"event":"book","venue":"okx","tick_sz":0.01,"bids":[{"price":100.0,"size":5.0}],"asks":[{"price":100.01,"size":4.0}]}
+{"event":"intent","kind":"sim_open","symbol":"SOL","side":"buy","limit_px":100.0,"qty":2.0,"invalidation_px":99.5,"script":"A","copied_price_onto_okx":false,"live":false}
+{"event":"trade","venue":"okx","symbol":"SOL","price":100.0,"size":5.0,"taker_side":"sell","event_ts_ms":1}
+{"event":"trade","venue":"okx","symbol":"SOL","price":100.0,"size":2.0,"taker_side":"sell","event_ts_ms":2}

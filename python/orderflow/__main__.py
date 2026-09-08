@@ -3,6 +3,7 @@
 Reads params/*.toml, writes one JSON log line, no secrets.
 Live / live_small exit 2 with reason=params_not_calibrated.
 Optional --journal PATH steps the Stage 5 decision engine on Rust snapshots.
+Optional --reconcile-local / --reconcile-exchange compare fixtures (no API keys).
 """
 
 from __future__ import annotations
@@ -10,12 +11,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from .boot import boot_line
 from .config import MODES, default_config_dir, load_config
 from .decision.engine import DecisionEngine
 from .decision.snapshot import load_journal
 from .logfmt import json_log
+from .reconcile import reconcile
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,12 +28,31 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--once", action="store_true")
     p.add_argument("--journal", help="Rust closed-1m JSONL (footprint/context/book/resonance)")
     p.add_argument("--symbol", default="SOL", choices=("SOL", "SUI"))
+    p.add_argument("--reconcile-local", help="Local ledger JSON (Rust snapshot)")
+    p.add_argument("--reconcile-exchange", help="Exchange ledger JSON fixture (no API keys)")
     args = p.parse_args(argv)
 
     line, code = boot_line(args.mode, args.config_dir)
     print(line)
     if code != 0:
         return code
+
+    if args.reconcile_local or args.reconcile_exchange:
+        if not (args.reconcile_local and args.reconcile_exchange):
+            print('{"level":"error","event":"reconcile_error","error":"need both --reconcile-local and --reconcile-exchange"}')
+            return 2
+        cfg = load_config(args.config_dir)
+        risk = cfg.runtime.get("risk") or {}
+        local = json.loads(Path(args.reconcile_local).read_text())
+        exchange = json.loads(Path(args.reconcile_exchange).read_text())
+        rec = reconcile(
+            local,
+            exchange,
+            symbol_cap_notional=float(risk.get("symbol_cap_notional") or 1000),
+            account_cap_notional=float(risk.get("account_cap_notional") or 2000),
+        )
+        print(json_log("info" if rec["ok"] else "error", rec))
+        return 0
 
     if args.journal:
         cfg = load_config(args.config_dir)
@@ -62,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.once:
         print(
-            '{"level":"info","event":"idle","note":"stage 5: A–G decision on --journal Rust snapshots. Resonance off. Live still gated."}'
+            '{"level":"info","event":"idle","note":"stage 6: A–G + sim/reconcile fixtures. Resonance off. Live still gated."}'
         )
     return 0
 

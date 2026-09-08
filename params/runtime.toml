@@ -16,8 +16,18 @@ out_of_sample_validated = false
 calibration_complete = false
 
 [risk]
-# Shared SOL/SUI beta cap. Number not calibrated. Placeholder only.
+# Shared SOL/SUI beta cap. Numbers are observation placeholders, not live authorization.
 shared_beta_cap_enabled = false
+risk_pct = 0.002
+symbol_cap_notional = 1000.0
+account_cap_notional = 2000.0
+leverage_cap = 3.0
+daily_loss_halt = 50.0
+liq_buffer_pct = 0.05
+max_day_trades = 20
+equity = 10000.0
+kill_switch_clear_on_start = false
+reconcile_every_s = 30
 
 [venues.okx]
 role = "execution"

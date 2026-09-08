@@ -23,6 +23,7 @@ from orderflow.regime import ENTRY_REASON as REGIME_IS_ENTRY  # noqa: E402
 from orderflow.scripts.f import ScriptF  # noqa: E402
 from orderflow.scripts.g import ScriptG  # noqa: E402
 from orderflow.scripts.unfinished import UnfinishedAuction  # noqa: E402
+from orderflow.reconcile import WIRED as RECONCILE_WIRED  # noqa: E402
 
 
 class TestPythonBoot(unittest.TestCase):
@@ -125,6 +126,8 @@ class TestParams(unittest.TestCase):
         self.assertFalse(cfg.sol["script_g_is_entry"])
         self.assertEqual(cfg.sol["accept_bars"], 3)
         self.assertEqual(cfg.runtime["resonance_k"], 1)
+        self.assertFalse(cfg.runtime["risk"]["shared_beta_cap_enabled"])
+        self.assertEqual(cfg.runtime["risk"]["risk_pct"], 0.002)
 
     def test_sui_language_runnable_but_not_live(self):
         cfg = load_config(PARAMS)
@@ -149,6 +152,7 @@ class TestScriptStubs(unittest.TestCase):
         self.assertTrue(CONTEXT_WIRED)
         self.assertIn("vwap", CONTEXT_FORBIDDEN)
         self.assertFalse(REGIME_IS_ENTRY)
+        self.assertTrue(RECONCILE_WIRED)
 
 
 @unittest.skipUnless(BIN.is_file(), "orderflowd not built")
