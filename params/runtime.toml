@@ -5,6 +5,8 @@ school = "footprint"
 mode_default = "shadow"
 execution_venue = "okx"
 resonance = "off"
+# k_of_n peer count. Recorded even while mode stays off. Not a live switch.
+resonance_k = 1
 
 [calibration]
 # 21-day observation draft is not out-of-sample validation.

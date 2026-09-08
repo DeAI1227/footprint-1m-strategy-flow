@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: context-regime
     content: 近窗量堆/擺動/制度與三所 k_of_n 共振（預設 off，仍計算；不算 VWAP/日盤 Profile）
-    status: pending
+    status: completed
   - id: scripts-decision
     content: Python：腳本 A–G 狀態機、互斥、讀 Rust 凍結快照
     status: pending
@@ -142,8 +142,8 @@ bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用�
 **階段 3 — L2 + 對讀旗標（Rust，分所，已完成）**  
 書壞則該所盤口特徵作廢。執行所 book 壞：禁止依賴盤口的開倉。共振所 book 壞：該所對讀 `not_evaluated`，不擋 OKX。Replay：`--book-replay PATH`（可與 `--replay` 依事件時間合併；同戳成交先於簿）。Python 腳本 F 狀態機仍未接。live 仍拒絕。
 
-**階段 4 — 位置與制度 + 共振欄位**  
-近窗量堆 / 擺動 / 量堆被接受旗標 / 清算與擁擠旗標。不算 VWAP、不算日盤 Profile。三所方向寫進快照；共振預設 `off`（仍記錄），不驅動下單價。
+**階段 4 — 位置與制度 + 共振欄位（已完成）**  
+近窗量堆 / 擺動 / 量堆被接受旗標 / 清算與擁擠旗標。不算 VWAP、不算日盤 Profile。三所方向寫進快照；共振預設 `off`（仍記錄），不驅動下單價。Replay：`--regime-replay PATH`（OI / 強平 / 資金費 sidecar）。缺流 → `not_evaluated`。live 仍拒絕。
 
 **階段 5 — 腳本狀態機 A–G + 決策快照（Python 讀 Rust 快照）**  
 全進影子日誌。互斥、cooldown、硬否決表一次做完，不要先做 A 再漏否決。

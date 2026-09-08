@@ -1,0 +1,4 @@
+{"event":"oi_1h","ts_ms":0,"oi":1000000}
+{"event":"oi_1h","ts_ms":3600000,"oi":975000}
+{"event":"liq_1m","open_ms":3600000,"notional":200000}
+{"event":"funding","ts_ms":0,"rate":-0.000115}

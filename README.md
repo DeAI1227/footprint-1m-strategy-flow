@@ -3,7 +3,7 @@
 死守**足跡圖流派**的 SOL / SUI 1 分鐘訂單流規格與參數校準。  
 不是形態學、不是 Market Profile、不是 VWAP、不是 ICT。
 
-目前這個 repo 有規格、觀察日誌、階段 0–2，以及**階段 3：分所 L2**（seq/checksum、牆追蹤、四種對讀）。還沒有正式 TCP WS 長連當 daemon、也沒有下單。**live 仍硬拒絕。共振預設 `off`。**
+目前這個 repo 有規格、觀察日誌、階段 0–3，以及**階段 4：近窗量堆 / 擺動 / 制度 / 共振欄位**。還沒有正式 TCP WS 長連當 daemon、也沒有下單。**live 仍硬拒絕。共振預設 `off`（仍記錄）。**
 
 ## 啟動
 
@@ -22,6 +22,8 @@ cargo run -p orderflowd -- --mode shadow --replay /tmp/sol_binance_agg.jsonl --v
 cargo run -p orderflowd -- --mode shadow --replay-bybit /tmp/sol_bybit_trades.csv
 # 階段 3：OKX books JSONL（可與成交 replay 合併）
 cargo run -p orderflowd -- --mode shadow --book-replay crates/orderflow-book/tests/fixtures/sol_okx_books.jsonl
+# 階段 4：足跡 replay 會凍結近窗量堆 / 擺動 / 制度（可另加 --regime-replay）
+cargo run -p orderflowd -- --mode shadow --replay crates/orderflow-footprint/tests/fixtures/sol_okx_stack3.jsonl
 ```
 
 配置：[`params/runtime.toml`](params/runtime.toml)、[`params/sol.toml`](params/sol.toml)、[`params/sui.toml`](params/sui.toml)。數字只從 toml 讀。執行所仍是 OKX；共振預設 `off`。觀察稿不是樣本外驗證。
@@ -92,4 +94,5 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 **階段 0**：shadow 可啟動，live 硬拒絕。  
 **階段 1**：OKX 成交正規化 + 事件時間 1m 切棒（閉合不可改寫）+ JSONL replay / journal。  
 **階段 2**：三所各算一張 1m 足跡；golden replay 對齊矩陣不是盈虧。未完成與 G 仍不是進場。  
-**階段 3**：分所 L2；執行所書壞才關 DOM 開倉；共振所書壞只標該所 `not_evaluated`。下一框是階段 4（位置/制度/共振欄位）。**禁止 live。**
+**階段 3**：分所 L2；執行所書壞才關 DOM 開倉；共振所書壞只標該所 `not_evaluated`。  
+**階段 4**：近窗量堆 / 擺動 / 接受與假離開 / 清算與資金費黑窗 / 三所方向。共振 `off` 仍記日誌，不抄外所價。下一框是階段 5（腳本 A–G）。**禁止 live。**
