@@ -4,7 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Stage 0 stub: per-venue 1m footprint matrix (wired in stage 2). Python must not build a second matrix."
+description = "Per-venue 1m footprint matrix. No VWAP/TPO. Python must not build a second matrix."
 
 [dependencies]
 orderflow-domain.workspace = true
+orderflow-clock = { path = "../orderflow-clock" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+orderflow-ingest = { path = "../orderflow-ingest" }
+tempfile = "3"

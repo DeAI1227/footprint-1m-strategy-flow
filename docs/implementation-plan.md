@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: footprint-matrix
     content: Rust：SOL/SUI 分桶足跡矩陣與 golden replay（三所各一張，不加總）
-    status: pending
+    status: completed
   - id: book-read
     content: Rust：三所 L2 健康、牆追蹤、足跡對讀旗標
     status: pending
@@ -136,8 +136,8 @@ Cargo workspace、PyO3、Python 套件、lint/test、`params/*.toml` 全佔位�
 **階段 1b — Binance 與 Bybit 公共 WS（Rust，已完成）**  
 與 OKX 同一內部事件型別。Bybit taker 方向黃金測試必須先綠（`S` = taker side；`T` 為毫秒）。三所有界佇列，滿則該所 `gap`，不阻塞 OKX。此階段仍不算共振開倉。Replay：`--replay PATH --venue binance|bybit` 或 `--replay-binance` / `--replay-bybit`（JSONL 或日檔 CSV）。TCP 長連不是 replay 的前置條件；本環境 Binance fapi 451 / Bybit REST 403 時用 dump。
 
-**階段 2 — 足跡矩陣（Rust，三所各算）**  
-bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用錄製的一小段 SOL trades 做 golden replay（對齊矩陣，不是對齊盈虧）。三所 replay 分開對齊。
+**階段 2 — 足跡矩陣（Rust，三所各算，已完成）**  
+bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用一小段 SOL trades 做 golden replay（對齊矩陣，不是對齊盈虧）。三所 replay 分開對齊。300∥400 並列。未完成不當進場。最小量讀 `session_nonempty_side_p25_both`，禁止寫死 SOL 口數。
 
 **階段 3 — L2 + 對讀旗標（Rust，分所）**  
 書壞則該所盤口特徵作廢。執行所 book 壞：禁止依賴盤口的開倉。共振所 book 壞：該所對讀 `not_evaluated`。

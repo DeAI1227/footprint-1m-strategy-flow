@@ -8,8 +8,8 @@ description = "Process: load params, boot shadow/sim, refuse live; three-venue 1
 
 [dependencies]
 orderflow-domain.workspace = true
-orderflow-clock = { path = "../orderflow-clock" }
 orderflow-ingest = { path = "../orderflow-ingest" }
+orderflow-footprint = { path = "../orderflow-footprint" }
 orderflow-exec = { path = "../orderflow-exec" }
 serde_json.workspace = true
 tokio.workspace = true

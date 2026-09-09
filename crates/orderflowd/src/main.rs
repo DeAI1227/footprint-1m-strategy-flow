@@ -2,9 +2,9 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use orderflow_clock::{BarCutter, CutEvent};
 use orderflow_domain::{boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue};
 use orderflow_exec::submit_live_open;
+use orderflow_footprint::{FootprintConfig, FootprintEngine};
 use orderflow_ingest::journal::JsonlJournal;
 use orderflow_ingest::load_dump_sorted;
 
@@ -145,6 +145,14 @@ fn journal_for(
     Ok(Some(JsonlJournal::create(path)?))
 }
 
+fn footprint_config(cfg: &AppConfig, symbol: &str) -> Result<FootprintConfig, String> {
+    match symbol.to_ascii_uppercase().as_str() {
+        "SOL" => FootprintConfig::from_symbol(&cfg.sol),
+        "SUI" => FootprintConfig::from_symbol(&cfg.sui),
+        other => Err(format!("unknown symbol {other}; expected SOL|SUI")),
+    }
+}
+
 fn run_one_replay(
     venue: Venue,
     path: &Path,
@@ -156,21 +164,32 @@ fn run_one_replay(
     if args.max_trades > 0 && trades.len() > args.max_trades {
         trades.truncate(args.max_trades);
     }
-    let mut cutter = BarCutter::new(venue, args.symbol.clone());
+    let fp_cfg = footprint_config(cfg, &args.symbol)?;
+    let mut eng = FootprintEngine::new(venue, args.symbol.clone(), fp_cfg);
     let mut closed_n = 0u64;
+    let mut stack_dale = 0u64;
+    let mut stack_valtos = 0u64;
     for t in &trades {
         debug_assert_eq!(t.venue, venue);
-        for ev in cutter.push(t) {
-            if let CutEvent::Closed(bar) = ev {
-                closed_n += 1;
-                if let Some(j) = &journal {
-                    j.append_closed(&bar, cutter.quality())?;
-                }
+        for ev in eng.push(t) {
+            closed_n += 1;
+            if ev.footprint.dale.aligned {
+                stack_dale += 1;
+            }
+            if ev.footprint.valtos.aligned {
+                stack_valtos += 1;
+            }
+            if let Some(j) = &journal {
+                j.append_closed(&ev.bar, eng.cutter().quality())?;
+                j.append_json(&serde_json::json!({
+                    "event": "footprint_closed",
+                    "footprint": ev.footprint,
+                }))?;
             }
         }
     }
     // Replay ends: do not flush forming as closed (matches live).
-    let q = cutter.quality();
+    let q = eng.cutter().quality();
     println!(
         "{}",
         serde_json::json!({
@@ -188,9 +207,12 @@ fn run_one_replay(
             "out_of_order": q.out_of_order,
             "gap_minutes": q.gap_minutes,
             "reconnect": q.reconnect,
-            "forming_open_ms": cutter.forming().map(|b| b.open_ms),
+            "forming_open_ms": eng.cutter().forming().map(|b| b.open_ms),
+            "footprint_wired": true,
+            "dale_aligned_stacks": stack_dale,
+            "valtos_aligned_stacks": stack_valtos,
             "journal": journal.as_ref().map(|j| j.path().display().to_string()),
-            "note": "stage 1b: three-venue event-time 1m bars; closed never rewritten; resonance off; live still gated",
+            "note": "stage 2: per-venue 1m footprint; 300∥400 parallel; unfinished not entry; resonance off; live still gated",
         })
     );
     Ok(())
@@ -256,7 +278,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 1b: OKX/Binance/Bybit public trade adapters + bounded lanes. Use --replay PATH [--venue okx|binance|bybit]. Resonance off. Live still gated. TCP WS long-connect is not required for replay.",
+                "note": "stage 2: per-venue 1m footprint + three-venue replay. Use --replay PATH [--venue okx|binance|bybit]. Resonance off. Live still gated.",
             })
         );
     }

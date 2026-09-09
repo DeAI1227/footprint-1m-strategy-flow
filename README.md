@@ -3,7 +3,7 @@
 死守**足跡圖流派**的 SOL / SUI 1 分鐘訂單流規格與參數校準。  
 不是形態學、不是 Market Profile、不是 VWAP、不是 ICT。
 
-目前這個 repo 有規格、觀察日誌、階段 0 骨架，階段 1（OKX 事件時間 1m 切棒），以及**階段 1b：Binance / Bybit 公共成交適配 + 有界佇列**。還沒有正式 TCP WS 長連當 daemon、足跡矩陣、L2、也沒有下單。**live 仍硬拒絕。共振預設 `off`。**
+目前這個 repo 有規格、觀察日誌、階段 0–1b，以及**階段 2：分所 1m 足跡矩陣**（斜對角 / 堆疊 / 當根 POC·VA / 未完成 / CVD）。還沒有正式 TCP WS 長連當 daemon、L2、也沒有下單。**live 仍硬拒絕。共振預設 `off`。**
 
 ## 啟動
 
@@ -89,5 +89,5 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 第一週 SOL 眼睛已凍結（300∥400 仍並列）。第二週句子層已凍結。第三週 SUI 分表與制度否決已凍結。  
 **階段 0**：shadow 可啟動，live 硬拒絕。  
 **階段 1**：OKX 成交正規化 + 事件時間 1m 切棒（閉合不可改寫）+ JSONL replay / journal。  
-**階段 1b**：Binance `m`/`isBuyerMaker` 與 Bybit `S`（taker）黃金測試；三所有界佇列，一所滿不得拖死 OKX。共振仍 `off`。  
-下一框是階段 2（足跡矩陣）。**禁止 live。**
+**階段 2**：三所各算一張 1m 足跡；golden replay 對齊矩陣不是盈虧。未完成與 G 仍不是進場。  
+下一框是階段 3（L2 + 對讀旗標）。**禁止 live。**

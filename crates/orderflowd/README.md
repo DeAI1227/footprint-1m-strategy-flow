@@ -2,7 +2,7 @@
 
 階段 0：載入參數、shadow/sim 啟動、硬拒絕 live。  
 階段 1：OKX 公共成交 JSONL replay → 事件時間 1m 棒（已閉合不可改寫）。  
-階段 1b：Binance / Bybit 同一切棒契約；有界佇列；共振仍 `off`。
+階段 2：replay 時同時凍結分所足跡矩陣（`footprint_closed` JSONL）。300∥400 並列。live 仍拒絕。
 
 ```bash
 cargo run -p orderflowd -- --mode shadow --once

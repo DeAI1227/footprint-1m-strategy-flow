@@ -1,0 +1,7 @@
+{"instId":"SOL-USDT-SWAP","tradeId":"1","px":"100.00","sz":"2","side":"sell","ts":"1000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"2","px":"100.01","sz":"10","side":"buy","ts":"2000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"3","px":"100.01","sz":"2","side":"sell","ts":"3000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"4","px":"100.02","sz":"10","side":"buy","ts":"4000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"5","px":"100.02","sz":"2","side":"sell","ts":"5000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"6","px":"100.03","sz":"10","side":"buy","ts":"6000"}
+{"instId":"SOL-USDT-SWAP","tradeId":"7","px":"100.03","sz":"1","side":"buy","ts":"60000"}
