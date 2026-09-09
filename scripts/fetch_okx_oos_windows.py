@@ -99,14 +99,54 @@ def trade_near(target_ts_ms: int, newest_id: int, newest_ts: int) -> dict:
     return best
 
 
+def session_windows(end_ts_ms: int, until_ts_ms: int) -> list[tuple[str, int, int]]:
+    """Split [until, end) into UTC session slices, newest first.
+
+    Asia 0–8, EU 8–13, US 13–21, thin 21–24.
+    """
+    from datetime import timedelta
+
+    cuts = []
+    t = until_ts_ms
+    end = end_ts_ms
+    while t < end:
+        dt = datetime.fromtimestamp(t / 1000, timezone.utc)
+        hour = dt.hour
+        if hour < 8:
+            sess, nxt_h = "asia", 8
+        elif hour < 13:
+            sess, nxt_h = "eu", 13
+        elif hour < 21:
+            sess, nxt_h = "us", 21
+        else:
+            sess, nxt_h = "thin", 24
+        nxt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        if nxt_h == 24:
+            nxt = nxt + timedelta(days=1)
+        else:
+            nxt = nxt.replace(hour=nxt_h)
+        nxt_ms = min(int(nxt.timestamp() * 1000), end)
+        day = dt.strftime("%Y%m%d")
+        cuts.append((f"{sess}_{day}", nxt_ms, t))
+        t = nxt_ms
+    cuts.reverse()  # newest session first
+    return cuts
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", default="/tmp/sol_oos")
     ap.add_argument(
+        "--end-ts-ms",
+        type=int,
+        default=0,
+        help="Exclusive newer bound (default: now)",
+    )
+    ap.add_argument(
         "--until-ts-ms",
         type=int,
         default=int(datetime(2026, 9, 8, tzinfo=timezone.utc).timestamp() * 1000),
-        help="Oldest timestamp to keep (default 2026-09-08 00:00 UTC)",
+        help="Oldest timestamp to keep",
     )
     ap.add_argument("--max-pages", type=int, default=8000)
     args = ap.parse_args()
@@ -117,18 +157,11 @@ def main() -> int:
     nid, nts = int(newest["tradeId"]), int(newest["ts"])
     print(f"newest id={nid} {iso(nts)} px={newest['px']}", flush=True)
 
-    # Session boundaries inside the OOS window (UTC).
-    bounds = [
-        ("asia_sep9", nts + 1, int(datetime(2026, 9, 9, tzinfo=timezone.utc).timestamp() * 1000)),
-        ("thin_sep8", int(datetime(2026, 9, 9, tzinfo=timezone.utc).timestamp() * 1000),
-         int(datetime(2026, 9, 8, 21, tzinfo=timezone.utc).timestamp() * 1000)),
-        ("us_sep8", int(datetime(2026, 9, 8, 21, tzinfo=timezone.utc).timestamp() * 1000),
-         int(datetime(2026, 9, 8, 13, tzinfo=timezone.utc).timestamp() * 1000)),
-        ("eu_sep8", int(datetime(2026, 9, 8, 13, tzinfo=timezone.utc).timestamp() * 1000),
-         int(datetime(2026, 9, 8, 8, tzinfo=timezone.utc).timestamp() * 1000)),
-        ("asia_sep8", int(datetime(2026, 9, 8, 8, tzinfo=timezone.utc).timestamp() * 1000),
-         int(args.until_ts_ms)),
-    ]
+    end_ts = args.end_ts_ms if args.end_ts_ms > 0 else nts + 1
+    bounds = session_windows(end_ts, args.until_ts_ms)
+    if not bounds:
+        print("empty window", flush=True)
+        return 1
 
     script = Path(__file__).with_name("fetch_okx_trade_window.py")
     procs: list[subprocess.Popen] = []
@@ -136,11 +169,8 @@ def main() -> int:
         if newer_ts <= until_ts:
             print(f"skip {name}: empty window", flush=True)
             continue
-        if name == "asia_sep9":
-            after_id = str(nid + 1)
-        else:
-            near = trade_near(newer_ts, nid, nts)
-            after_id = str(int(near["tradeId"]) + 1)
+        near = trade_near(newer_ts, nid, nts)
+        after_id = str(int(near["tradeId"]) + 1)
         path = out_dir / f"{name}.jsonl"
         cmd = [
             sys.executable,
@@ -156,9 +186,7 @@ def main() -> int:
         ]
         print("spawn", " ".join(cmd), flush=True)
         log = (out_dir / f"{name}.log").open("w")
-        procs.append(
-            subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
-        )
+        procs.append(subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT))
 
     rc = 0
     for p in procs:

@@ -82,6 +82,7 @@ PYTHONPATH=python python3 -m orderflow --calibrate-check
 | [params/sol-observation.md](params/sol-observation.md) | SOL 每日觀察日誌 |
 | [params/sol-oos-shadow.md](params/sol-oos-shadow.md) | SOL 樣本外影子統計（1893 根；仍不選 300 vs 400；不是 live） |
 | [params/sol-oos-scripts.md](params/sol-oos-scripts.md) | SOL 樣本外 A–G 失效畫面（同一 journal；仍並列；F 無 L2） |
+| [params/sol-oos-day2.md](params/sol-oos-day2.md) | SOL 樣本外第二交易日（09-07；合併 3333 根；仍不選邊） |
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡 |
 | [scripts/recompute_days_2_7.py](scripts/recompute_days_2_7.py) | 一次重跑第 2–7 天校準表 |
