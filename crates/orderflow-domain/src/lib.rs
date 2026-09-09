@@ -371,6 +371,28 @@ pub struct CalibrationGate {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskPlaceholder {
     pub shared_beta_cap_enabled: bool,
+    /// Fraction of equity risked per new open. Observation placeholder.
+    #[serde(default = "default_risk_pct")]
+    pub risk_pct: f64,
+    #[serde(default = "default_symbol_cap")]
+    pub symbol_cap_notional: f64,
+    #[serde(default = "default_account_cap")]
+    pub account_cap_notional: f64,
+    #[serde(default = "default_leverage_cap")]
+    pub leverage_cap: f64,
+    #[serde(default = "default_daily_loss_halt")]
+    pub daily_loss_halt: f64,
+    #[serde(default = "default_liq_buffer_pct")]
+    pub liq_buffer_pct: f64,
+    #[serde(default = "default_max_day_trades")]
+    pub max_day_trades: u32,
+    #[serde(default = "default_equity")]
+    pub equity: f64,
+    /// Restart must not clear a tripped kill switch unless this is true.
+    #[serde(default)]
+    pub kill_switch_clear_on_start: bool,
+    #[serde(default = "default_reconcile_every_s")]
+    pub reconcile_every_s: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -438,6 +460,42 @@ fn default_resonance_k() -> u32 {
 
 fn default_accept_bars() -> u32 {
     3
+}
+
+fn default_risk_pct() -> f64 {
+    0.002
+}
+
+fn default_symbol_cap() -> f64 {
+    1000.0
+}
+
+fn default_account_cap() -> f64 {
+    2000.0
+}
+
+fn default_leverage_cap() -> f64 {
+    3.0
+}
+
+fn default_daily_loss_halt() -> f64 {
+    50.0
+}
+
+fn default_liq_buffer_pct() -> f64 {
+    0.05
+}
+
+fn default_max_day_trades() -> u32 {
+    20
+}
+
+fn default_equity() -> f64 {
+    10_000.0
+}
+
+fn default_reconcile_every_s() -> u32 {
+    30
 }
 
 impl SymbolParams {
@@ -724,6 +782,8 @@ mod tests {
         assert!(!cfg.runtime.calibration.calibration_complete);
         assert!(!cfg.runtime.calibration.out_of_sample_validated);
         assert!(!cfg.runtime.risk.shared_beta_cap_enabled);
+        assert!((cfg.runtime.risk.risk_pct - 0.002).abs() < 1e-12);
+        assert!(!cfg.runtime.risk.kill_switch_clear_on_start);
     }
 
     #[test]

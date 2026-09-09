@@ -9,7 +9,7 @@ use orderflow_context::{
 use orderflow_domain::{
     boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue, VenueRole,
 };
-use orderflow_exec::submit_live_open;
+use orderflow_exec::{run_sim_fixture, submit_live_open};
 use orderflow_footprint::{FootprintConfig, FootprintEngine};
 use orderflow_ingest::journal::JsonlJournal;
 use orderflow_ingest::load_dump_sorted;
@@ -29,6 +29,8 @@ struct Args {
     max_trades: usize,
     book_replay: Option<PathBuf>,
     regime_replay: Option<PathBuf>,
+    sim_fixture: Option<PathBuf>,
+    kill_switch: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -45,6 +47,8 @@ fn parse_args() -> Result<Args, String> {
     let mut max_trades = 0usize;
     let mut book_replay = None;
     let mut regime_replay = None;
+    let mut sim_fixture = None;
+    let mut kill_switch = None;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -96,6 +100,14 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--regime-replay needs a path")?;
                 regime_replay = Some(v.into());
             }
+            "--sim-fixture" => {
+                let v = it.next().ok_or("--sim-fixture needs a path")?;
+                sim_fixture = Some(v.into());
+            }
+            "--kill-switch" => {
+                let v = it.next().ok_or("--kill-switch needs a path")?;
+                kill_switch = Some(v.into());
+            }
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
@@ -103,8 +115,10 @@ fn parse_args() -> Result<Args, String> {
                      \t[--replay-okx PATH] [--replay-binance PATH] [--replay-bybit PATH]\n\
                      \t[--journal out.jsonl] [--symbol SOL] [--max-trades N]\n\
                      \t[--book-replay PATH] [--regime-replay PATH]\n\
+                     \t[--sim-fixture PATH] [--kill-switch PATH]\n\
                      Resonance stays off (still recorded). Replay venue is not the execution venue.\n\
-                     --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX."
+                     --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX.\n\
+                     --sim-fixture matches on the OKX book only. No API keys. Live still gated."
                 );
                 return Err("help".into());
             }
@@ -125,6 +139,8 @@ fn parse_args() -> Result<Args, String> {
         max_trades,
         book_replay,
         regime_replay,
+        sim_fixture,
+        kill_switch,
     })
 }
 
@@ -553,6 +569,22 @@ async fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
+    if let Some(path) = &args.sim_fixture {
+        match run_sim_fixture(path, &cfg, args.kill_switch.as_deref()) {
+            Ok(v) => {
+                println!("{v}");
+                return ExitCode::SUCCESS;
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"level":"error","event":"sim_error","error":e})
+                );
+                return ExitCode::from(2);
+            }
+        }
+    }
+
     if !collect_replay_jobs(&args).is_empty() || args.book_replay.is_some() {
         if let Err(e) = run_replays(&args, &cfg) {
             eprintln!(
@@ -570,7 +602,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 4: context/regime/resonance. Use --replay PATH [--venue okx|binance|bybit], --book-replay PATH, --regime-replay PATH. Resonance off. Live still gated.",
+                "note": "stage 6: sim matching + risk. Use --sim-fixture PATH. --replay still works. Resonance off. Live still gated.",
             })
         );
     }

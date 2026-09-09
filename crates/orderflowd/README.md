@@ -4,7 +4,8 @@
 階段 1：OKX 公共成交 JSONL replay → 事件時間 1m 棒（已閉合不可改寫）。  
 階段 2：replay 時同時凍結分所足跡矩陣（`footprint_closed` JSONL）。300∥400 並列。  
 階段 3：`--book-replay` 凍結分所 L2（`book_closed` JSONL）。執行所書壞才關 DOM 開倉。  
-階段 4：已閉合足跡推近窗量堆 / 擺動 / 制度（`context_closed`）與三所方向（`resonance_closed`）。共振模式仍 `off`。live 仍拒絕。
+階段 4：已閉合足跡推近窗量堆 / 擺動 / 制度（`context_closed`）與三所方向（`resonance_closed`）。共振模式仍 `off`。  
+階段 6：`--sim-fixture` 用 OKX 盤口做本地假成交。Kill switch / 日虧 / 強平緩衝在熱路徑。live 仍拒絕。OKX 私有流是階段 7。
 
 ```bash
 cargo run -p orderflowd -- --mode shadow --once
@@ -14,6 +15,7 @@ cargo run -p orderflowd -- --mode shadow --replay /tmp/sol_binance_agg.jsonl --v
 cargo run -p orderflowd -- --mode shadow --replay-bybit /tmp/sol_bybit_trades.csv
 cargo run -p orderflowd -- --mode shadow --book-replay crates/orderflow-book/tests/fixtures/sol_okx_books.jsonl --journal /tmp/sol_book_closed.jsonl
 cargo run -p orderflowd -- --mode shadow --replay crates/orderflow-footprint/tests/fixtures/sol_okx_stack3.jsonl --regime-replay crates/orderflow-context/tests/fixtures/sol_regime.jsonl
+cargo run -p orderflowd -- --mode sim --sim-fixture crates/orderflow-exec/tests/fixtures/okx_sim.jsonl
 ```
 
 Replay 所不是執行所。執行仍是 OKX。live 仍拒絕。

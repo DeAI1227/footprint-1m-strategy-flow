@@ -4,7 +4,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Stage 0 stub: OKX execution. Live opens are impossible here."
+description = "Stage 6: local sim matching and risk. Live opens stay impossible."
 
 [dependencies]
 orderflow-domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
