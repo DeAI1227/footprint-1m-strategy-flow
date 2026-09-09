@@ -14,5 +14,6 @@ orderflow-book = { path = "../orderflow-book" }
 orderflow-context = { path = "../orderflow-context" }
 orderflow-exec = { path = "../orderflow-exec" }
 orderflow-ops = { path = "../orderflow-ops" }
+orderflow-calibrate = { path = "../orderflow-calibrate" }
 serde_json.workspace = true
 tokio.workspace = true

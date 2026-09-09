@@ -5,6 +5,7 @@ Live / live_small exit 2 with reason=params_not_calibrated.
 Optional --journal PATH steps the Stage 5 decision engine on Rust snapshots.
 Optional --reconcile-local / --reconcile-exchange compare fixtures (no API keys).
 Optional --ops-check prints Tokyo health (no API).
+Optional --calibrate-check / --calibrate-journal: fill-number status; not live.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from .config import MODES, default_config_dir, load_config
 from .decision.engine import DecisionEngine
 from .decision.snapshot import load_journal
 from .logfmt import json_log
+from .calibrate import check_line, promote_fill, stats_line
 from .ops import ops_line
 from .reconcile import reconcile
 
@@ -35,7 +37,26 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--reconcile-exchange", help="Exchange ledger JSON fixture (no API keys)")
     p.add_argument("--ops-check", action="store_true", help="Tokyo health snapshot; no API")
     p.add_argument("--crash-fuse", help="Crash fuse JSON path (inspect only)")
+    p.add_argument("--calibrate-check", action="store_true", help="Fill-number status; not live")
+    p.add_argument("--calibrate-journal", help="Rust footprint_closed JSONL for shadow stats")
+    p.add_argument("--promote-live", action="store_true", help="Always refused this period")
     args = p.parse_args(argv)
+
+    if args.calibrate_check:
+        print(check_line(args.config_dir))
+        if not args.calibrate_journal and not args.promote_live:
+            return 0
+
+    if args.calibrate_journal:
+        print(stats_line(Path(args.calibrate_journal)))
+        if not args.promote_live:
+            return 0
+
+    if args.promote_live:
+        cfg = load_config(args.config_dir)
+        reason, message = promote_fill(cfg)
+        print(json_log("error", {"event": "promote_denied", "reason": reason, "message": message}))
+        return 2
 
     if args.ops_check:
         print(
@@ -134,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.once:
         print(
-            '{"level":"info","event":"idle","note":"stage 8: Tokyo ops. SOL+SUI shadow parallel. Resonance off. Live still gated."}'
+            '{"level":"info","event":"idle","note":"stage 9: fill-number interfaces. Observation freeze is not live. Resonance off."}'
         )
     return 0
 

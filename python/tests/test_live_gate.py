@@ -25,6 +25,8 @@ from orderflow.scripts.g import ScriptG  # noqa: E402
 from orderflow.scripts.unfinished import UnfinishedAuction  # noqa: E402
 from orderflow.reconcile import WIRED as RECONCILE_WIRED  # noqa: E402
 from orderflow.ops import WIRED as OPS_WIRED  # noqa: E402
+from orderflow.calibrate import WIRED as CALIBRATE_WIRED  # noqa: E402
+from orderflow.calibrate import COMPLETE as CALIBRATE_COMPLETE  # noqa: E402
 
 
 class TestPythonBoot(unittest.TestCase):
@@ -117,6 +119,7 @@ class TestParams(unittest.TestCase):
         cfg = load_config(PARAMS)
         self.assertFalse(cfg.runtime["calibration"]["calibration_complete"])
         self.assertFalse(cfg.runtime["calibration"]["out_of_sample_validated"])
+        self.assertTrue(cfg.runtime["calibration"]["observation_frozen"])
         self.assertFalse(cfg.sol["live_enabled"])
         self.assertFalse(cfg.sui["live_enabled"])
         self.assertEqual(cfg.sol["armed_rate_policy"], "parallel")
@@ -155,6 +158,8 @@ class TestScriptStubs(unittest.TestCase):
         self.assertFalse(REGIME_IS_ENTRY)
         self.assertTrue(RECONCILE_WIRED)
         self.assertTrue(OPS_WIRED)
+        self.assertTrue(CALIBRATE_WIRED)
+        self.assertFalse(CALIBRATE_COMPLETE)
 
 
 @unittest.skipUnless(BIN.is_file(), "orderflowd not built")

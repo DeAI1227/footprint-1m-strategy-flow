@@ -1,9 +1,8 @@
 """Sentence layer package. Read params, boot shadow, refuse live.
 
 Stage 5: A–G machines read frozen Rust 1m snapshots.
-Stage 6: fixture reconcile (no API keys). Stage 7: SOL and SUI shadow in
-parallel. Stage 8: Tokyo ops health. Do not parse venue WebSocket or assemble
-a second footprint matrix here.
+Stage 8: Tokyo ops health. Stage 9: fill-number check (not complete).
+Do not parse venue WebSocket or assemble a second footprint matrix here.
 """
 
 from .boot import LiveDenied, boot_once, live_allowed

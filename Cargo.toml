@@ -9,6 +9,7 @@ members = [
     "crates/orderflow-context",
     "crates/orderflow-exec",
     "crates/orderflow-ops",
+    "crates/orderflow-calibrate",
     "crates/orderflow-py",
     "crates/orderflowd",
 ]
@@ -21,6 +22,7 @@ default-members = [
     "crates/orderflow-context",
     "crates/orderflow-exec",
     "crates/orderflow-ops",
+    "crates/orderflow-calibrate",
     "crates/orderflowd",
 ]
 

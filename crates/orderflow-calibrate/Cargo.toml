@@ -1,0 +1,12 @@
+[package]
+name = "orderflow-calibrate"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Stage 9 fill-number interfaces. Observation draft is not calibration complete."
+
+[dependencies]
+orderflow-domain.workspace = true
+serde.workspace = true
+serde_json.workspace = true
