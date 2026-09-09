@@ -166,7 +166,7 @@ bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用�
 監督重啟（systemd `StartLimitBurst=5` / `StartLimitIntervalSec=120`）、崩潰熔斷（N 次／T 秒持久化後停，不循環打 API）、日誌輪轉與磁碟水位、tick/lot 變更重建**該標的**形成中矩陣並撤單、暫停新開倉直到下一根乾淨已閉合 1m。漏棒停開倉不停平倉/風控。資金費黑窗當時鐘（階段 4 已算，這裡當運行面露出）。SUI 影子並行與三所 WS 互不阻塞已在前階段。`--ops-check` / `--spec-replay` / `--crash-fuse`。live 仍拒絕。無密鑰進 unit。
 
 **階段 9 — 填數字接口（已完成；本計劃不做完校準）**  
-校準順序寫死：SOL 桶寬 → 失衡/堆疊記錄閾 vs 開倉閾分開 → 流動性與時段門檻 → 再談 SUI → 樣本外。接口讀 Rust 已閉合 journal 做影子統計，**不選** 300 vs 400，不准平均 350%，不准把 SOL 0.01 抄到 SUI。`observation_frozen`（第 21 天定義凍結）≠ `calibration_complete`。`--calibrate-check` / `--calibrate-journal` / `--promote-live`（必失敗）。live 仍拒絕。
+校準順序寫死：SOL 桶寬 → 失衡/堆疊記錄閾 vs 開倉閾分開 → 流動性與時段門檻 → 再談 SUI → 樣本外。接口讀 Rust 已閉合 journal 做影子統計，**不選** 300 vs 400，不准平均 350%，不准把 SOL 0.01 抄到 SUI。`observation_frozen`（第 21 天定義凍結）≠ `calibration_complete`。`--calibrate-check` / `--calibrate-journal` / `--promote-live`（必失敗）。live 仍拒絕。SOL 樣本外第一窗（2026-09-08→09-09，1893 根）寫在 `params/sol-oos-shadow.md`；`out_of_sample_validated` 仍為 false。
 
 ## 測試與完成定義
 

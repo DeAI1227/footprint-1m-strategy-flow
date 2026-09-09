@@ -10,6 +10,7 @@ PYTHONPATH=python python3 -m orderflow --mode sim --once --reconcile-local /tmp/
 PYTHONPATH=python python3 -m orderflow --mode shadow --once --journal /tmp/sol.jsonl --journal-sui /tmp/sui.jsonl
 PYTHONPATH=python python3 -m orderflow --ops-check
 PYTHONPATH=python python3 -m orderflow --calibrate-check
+PYTHONPATH=python python3 -m orderflow --calibrate-journal crates/orderflow-calibrate/tests/fixtures/shadow_stats.jsonl
 PYTHONPATH=python python3 -m orderflow --promote-live   # 退出碼 2
 ```
 
