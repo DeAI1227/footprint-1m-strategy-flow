@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "OKX public trade normalize + JSONL replay (Binance/Bybit stage 1b)."
+description = "OKX + Binance + Bybit public trade normalize, bounded lanes, JSONL/CSV replay."
 
 [dependencies]
 orderflow-domain.workspace = true

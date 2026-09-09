@@ -69,6 +69,27 @@ pub enum Venue {
     Bybit,
 }
 
+impl Venue {
+    pub fn parse(s: &str) -> Result<Self, String> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "okx" => Ok(Self::Okx),
+            "binance" => Ok(Self::Binance),
+            "bybit" => Ok(Self::Bybit),
+            other => Err(format!(
+                "unknown venue {other:?}; expected okx|binance|bybit"
+            )),
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Okx => "okx",
+            Self::Binance => "binance",
+            Self::Bybit => "bybit",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VenueRole {
@@ -262,6 +283,25 @@ pub struct QualityVector {
     pub binance_book_ok: bool,
     pub bybit_book_ok: bool,
     pub liq_stream_missing: bool,
+}
+
+impl QualityVector {
+    /// Queue overflow / stall on one venue. Never used to block the other two.
+    pub fn mark_gap(&mut self, venue: Venue) {
+        match venue {
+            Venue::Okx => self.okx_gap = true,
+            Venue::Binance => self.binance_gap = true,
+            Venue::Bybit => self.bybit_gap = true,
+        }
+    }
+
+    pub fn gap(&self, venue: Venue) -> bool {
+        match venue {
+            Venue::Okx => self.okx_gap,
+            Venue::Binance => self.binance_gap,
+            Venue::Bybit => self.bybit_gap,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -617,6 +657,26 @@ mod tests {
         assert_eq!(cfg.sol.liq_1m_notional_rule, "sample_p95");
         assert_eq!(cfg.sol.funding_hours_utc, vec![0, 8, 16]);
         assert_eq!(cfg.sol.funding_black_window_minutes, 15);
+    }
+
+    #[test]
+    fn venue_gap_flags_are_independent() {
+        let mut q = QualityVector::default();
+        q.mark_gap(Venue::Binance);
+        assert!(q.gap(Venue::Binance));
+        assert!(!q.gap(Venue::Okx));
+        assert!(!q.gap(Venue::Bybit));
+        q.mark_gap(Venue::Bybit);
+        assert!(q.gap(Venue::Bybit));
+        assert!(!q.gap(Venue::Okx));
+    }
+
+    #[test]
+    fn venue_parse_roundtrip() {
+        assert_eq!(Venue::parse("OKX").unwrap(), Venue::Okx);
+        assert_eq!(Venue::parse("binance").unwrap().as_str(), "binance");
+        assert_eq!(Venue::parse("bybit").unwrap(), Venue::Bybit);
+        assert!(Venue::parse("deribit").is_err());
     }
 
     #[test]

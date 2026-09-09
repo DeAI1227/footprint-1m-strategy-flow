@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: three-venue-ws
     content: Rust：Binance 與 Bybit 公共 WS 適配（taker 方向黃金測試）與分所品質
-    status: pending
+    status: completed
   - id: footprint-matrix
     content: Rust：SOL/SUI 分桶足跡矩陣與 golden replay（三所各一張，不加總）
     status: pending
@@ -133,8 +133,8 @@ Cargo workspace、PyO3、Python 套件、lint/test、`params/*.toml` 全佔位�
 **階段 1 — OKX 公共成交 + 1m 棒契約（Rust）**  
 事件時間切棒、品質向量、暖機、journal。單測：亂序 / 晚到 / 重連不改寫已閉合棒。先只跑 SOL。
 
-**階段 1b — Binance 與 Bybit 公共 WS（Rust）**  
-與 OKX 同一內部事件型別。Bybit taker 方向黃金測試必須先綠。三所有界佇列，滿則該所 `gap`，不阻塞 OKX。此階段仍不算共振開倉。
+**階段 1b — Binance 與 Bybit 公共 WS（Rust，已完成）**  
+與 OKX 同一內部事件型別。Bybit taker 方向黃金測試必須先綠（`S` = taker side；`T` 為毫秒）。三所有界佇列，滿則該所 `gap`，不阻塞 OKX。此階段仍不算共振開倉。Replay：`--replay PATH --venue binance|bybit` 或 `--replay-binance` / `--replay-bybit`（JSONL 或日檔 CSV）。TCP 長連不是 replay 的前置條件；本環境 Binance fapi 451 / Bybit REST 403 時用 dump。
 
 **階段 2 — 足跡矩陣（Rust，三所各算）**  
 bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用錄製的一小段 SOL trades 做 golden replay（對齊矩陣，不是對齊盈虧）。三所 replay 分開對齊。

@@ -1,4 +1,4 @@
-.PHONY: test shadow live-deny native fmt replay
+.PHONY: test shadow live-deny native fmt replay replay-three
 
 shadow:
 	cargo run -p orderflowd -- --mode shadow --once
@@ -10,6 +10,14 @@ live-deny:
 
 replay:
 	cargo run -p orderflowd -- --mode shadow --replay /tmp/sol_okx_trades.jsonl --max-trades 5000 --journal /tmp/sol_bars_closed.jsonl
+
+replay-three:
+	cargo run -p orderflowd -- --mode shadow \
+		--replay /tmp/sol_okx_trades.jsonl \
+		--replay-binance /tmp/sol_binance_agg.jsonl \
+		--replay-bybit /tmp/sol_bybit_trades.csv \
+		--max-trades 5000
+
 
 test:
 	cargo test --workspace --exclude orderflow-py
