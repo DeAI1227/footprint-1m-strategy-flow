@@ -7,7 +7,7 @@ pub mod stats;
 
 pub use fill::{fill_report, FillReport, FillStep, SlotStatus};
 pub use promote::promote_fill;
-pub use stats::{summarize_journal, ShadowStats};
+pub use stats::{summarize_journal, SessionRow, ShadowStats};
 
 pub const WIRED: bool = true;
 /// This plan period does not finish filling numbers.

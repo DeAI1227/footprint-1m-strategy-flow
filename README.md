@@ -86,6 +86,8 @@ PYTHONPATH=python python3 -m orderflow --calibrate-check
 | [scripts/week2_scripts_a_g.py](scripts/week2_scripts_a_g.py) | 週 2：劇本 A–G 失敗畫面（F 因無 L2 標 not_evaluated） |
 | [scripts/week3_sui_regime.py](scripts/week3_sui_regime.py) | 週 3：SUI 分表 + 清算/黑窗 + 三所方向 |
 | [scripts/fetch_week3_inputs.py](scripts/fetch_week3_inputs.py) | 週 3 輸入：SUI 成交/K 線、OI、強平、Binance/Bybit 日檔 |
+| [scripts/fetch_okx_oos_windows.py](scripts/fetch_okx_oos_windows.py) | 樣本外：OKX 公開成交跳窗進 `/tmp`（不進 git） |
+| [scripts/oos_shadow_from_journal.py](scripts/oos_shadow_from_journal.py) | 讀 Rust 凍結 journal 做時段影子表；不重算矩陣 |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
@@ -116,4 +118,4 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 **階段 6**：OKX 盤口本地撮合、kill switch / 日虧 / 強平緩衝 / 降載；對帳以交易所為真。  
 **階段 7**：OKX 私有解碼與下單編碼；live 雙鎖；SUI 影子並行。  
 **階段 8**：東京運行面（熔斷、tick 重建該標的、漏棒）。  
-**階段 9**：填數字接口已留好。觀察稿不是樣本外驗證。**禁止 live。** 本計劃不再往後開框。
+**階段 9**：填數字接口已留好。觀察稿不是樣本外驗證。SOL 樣本外影子統計讀 Rust 已閉合 journal，**仍不選 300 vs 400，禁止 live。**

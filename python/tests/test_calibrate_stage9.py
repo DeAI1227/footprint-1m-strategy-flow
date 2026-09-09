@@ -31,6 +31,7 @@ def _bar(open_ms: int, dale: bool, valtos: bool, unfinished: bool = False) -> Fr
         bar={"open_ms": open_ms, "state": "closed"},
         footprint={
             "open_ms": open_ms,
+            "session": "asia",
             "dale": {"aligned": dale, "rate": 3.0},
             "valtos": {"aligned": valtos, "rate": 4.0},
             "record": {"aligned": True, "rate": 2.0},
@@ -82,6 +83,9 @@ class TestCalibrateStage9(unittest.TestCase):
         self.assertEqual(stats["unfinished"], 1)
         self.assertIsNone(stats["chosen_armed_rate"])
         self.assertTrue(stats["still_open"])
+        self.assertFalse(stats["out_of_sample_validated"])
+        self.assertEqual(stats["sessions"][0]["session"], "asia")
+        self.assertEqual(stats["sessions"][0]["bars"], 2)
 
     def test_cli_calibrate_check(self):
         proc = subprocess.run(
