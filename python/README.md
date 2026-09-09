@@ -1,10 +1,11 @@
 # Python 句子層
 
-階段 0 套件。讀 `params/*.toml`，以 `shadow` 啟動，JSON 日誌不含密鑰。
+讀 `params/*.toml`，以 `shadow` 啟動。階段 5 起可用 `--journal` 讀 Rust 已閉合 1m 快照，跑腳本 A–G。JSON 日誌不含密鑰。live / live_small 仍因參數未校準而拒絕。
 
 ```bash
 PYTHONPATH=python python3 -m orderflow --mode shadow --once
 PYTHONPATH=python python3 -m orderflow --mode live --once   # 退出碼 2
+PYTHONPATH=python python3 -m orderflow --mode shadow --once --journal /tmp/sol_ctx.jsonl
 ```
 
-禁止在這裡解析行情 WebSocket，禁止用 pandas 組生產足跡矩陣。
+禁止在這裡解析行情 WebSocket，禁止用 pandas 組第二套生產足跡矩陣。共振預設 `off`，不把外所價抄到 OKX。G 與未完成拍賣不是進場。

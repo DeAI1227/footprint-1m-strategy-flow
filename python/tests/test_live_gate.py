@@ -141,7 +141,7 @@ class TestScriptStubs(unittest.TestCase):
         snaps = all_disabled()
         self.assertEqual(set(snaps), set("ABCDEFG"))
         for snap in snaps.values():
-            self.assertFalse(snap["wired"])
+            self.assertTrue(snap["wired"])
             self.assertEqual(snap["state"], "inactive")
         self.assertEqual(ScriptF().evaluation, "not_evaluated")
         self.assertFalse(ScriptG().is_entry)
