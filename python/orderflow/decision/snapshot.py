@@ -67,17 +67,27 @@ class FrozenBar:
     def dale(self) -> dict[str, Any]:
         return _d(self.footprint.get("dale"))
 
+    def rate_slice(self, name: str) -> dict[str, Any]:
+        return _d(self.footprint.get(name))
+
     def regime(self) -> dict[str, Any]:
         return _d(self.context.get("regime"))
 
+    def zone_from_rate(self, name: str) -> dict[str, Any] | None:
+        """Aligned stack zone from a frozen rate slice. Does not rebuild cells."""
+        sl = self.rate_slice(name)
+        if sl.get("aligned") and sl.get("stacked_buy") and sl.get("buy_imb_prices"):
+            xs = [float(x) for x in sl["buy_imb_prices"]]
+            return {"side": "buy", "lo": min(xs), "hi": max(xs), "rate": name}
+        if sl.get("aligned") and sl.get("stacked_sell") and sl.get("sell_imb_prices"):
+            xs = [float(x) for x in sl["sell_imb_prices"]]
+            return {"side": "sell", "lo": min(xs), "hi": max(xs), "rate": name}
+        return None
+
     def zone(self) -> dict[str, Any] | None:
-        dale = self.dale()
-        if dale.get("aligned") and dale.get("stacked_buy") and dale.get("buy_imb_prices"):
-            xs = [float(x) for x in dale["buy_imb_prices"]]
-            return {"side": "buy", "lo": min(xs), "hi": max(xs)}
-        if dale.get("aligned") and dale.get("stacked_sell") and dale.get("sell_imb_prices"):
-            xs = [float(x) for x in dale["sell_imb_prices"]]
-            return {"side": "sell", "lo": min(xs), "hi": max(xs)}
+        z = self.zone_from_rate("dale")
+        if z:
+            return z
         lo = self.context.get("old_edge_lo")
         hi = self.context.get("old_edge_hi")
         if lo is not None and hi is not None:
