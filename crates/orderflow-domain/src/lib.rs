@@ -437,6 +437,9 @@ pub struct CalibrationGate {
     pub live_authorized: bool,
     pub out_of_sample_validated: bool,
     pub calibration_complete: bool,
+    /// Day-21 freeze of observation definitions. Not OOS. Not live.
+    #[serde(default)]
+    pub observation_frozen: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -831,6 +834,7 @@ mod tests {
         cfg.runtime.calibration.out_of_sample_validated = true;
         cfg.runtime.calibration.calibration_complete = true;
         cfg.runtime.calibration.live_authorized = true;
+        cfg.runtime.calibration.observation_frozen = true;
         cfg.sol.live_enabled = true;
         cfg.sol.calibration_complete = true;
         cfg.sol.out_of_sample_validated = true;
@@ -896,6 +900,7 @@ mod tests {
         assert_eq!(cfg.sui.resonance, ResonanceMode::Off);
         assert!(!cfg.runtime.calibration.calibration_complete);
         assert!(!cfg.runtime.calibration.out_of_sample_validated);
+        assert!(cfg.runtime.calibration.observation_frozen);
         assert!(!cfg.runtime.risk.shared_beta_cap_enabled);
         assert!((cfg.runtime.risk.risk_pct - 0.002).abs() < 1e-12);
         assert!(!cfg.runtime.risk.kill_switch_clear_on_start);

@@ -10,7 +10,9 @@ resonance_k = 1
 
 [calibration]
 # 21-day observation draft is not out-of-sample validation.
+# observation_frozen freezes DEFINITIONS (day 21). It is not calibration_complete.
 status = "observation_draft"
+observation_frozen = true
 live_authorized = false
 out_of_sample_validated = false
 calibration_complete = false

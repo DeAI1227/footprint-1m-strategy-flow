@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use orderflow_book::{load_jsonl, BookConfig, BookEngine};
+use orderflow_calibrate::{fill_report, promote_fill, summarize_journal};
 use orderflow_context::{
     BarIn, ContextConfig, ContextEngine, RegimeInputs, ResonanceBook, VenueDir,
 };
@@ -36,6 +37,9 @@ struct Args {
     ops_check: bool,
     spec_replay: Option<PathBuf>,
     crash_fuse: Option<PathBuf>,
+    calibrate_check: bool,
+    calibrate_journal: Option<PathBuf>,
+    promote_live: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -58,6 +62,9 @@ fn parse_args() -> Result<Args, String> {
     let mut ops_check = false;
     let mut spec_replay = None;
     let mut crash_fuse = None;
+    let mut calibrate_check = false;
+    let mut calibrate_journal = None;
+    let mut promote_live = false;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -130,6 +137,12 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--crash-fuse needs a path")?;
                 crash_fuse = Some(v.into());
             }
+            "--calibrate-check" => calibrate_check = true,
+            "--calibrate-journal" => {
+                let v = it.next().ok_or("--calibrate-journal needs a path")?;
+                calibrate_journal = Some(v.into());
+            }
+            "--promote-live" => promote_live = true,
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
@@ -139,10 +152,12 @@ fn parse_args() -> Result<Args, String> {
                      \t[--book-replay PATH] [--regime-replay PATH]\n\
                      \t[--sim-fixture PATH] [--kill-switch PATH] [--private-replay PATH]\n\
                      \t[--ops-check] [--spec-replay PATH] [--crash-fuse PATH]\n\
+                     \t[--calibrate-check] [--calibrate-journal PATH] [--promote-live]\n\
                      Resonance stays off (still recorded). Replay venue is not the execution venue.\n\
                      --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX.\n\
                      --sim-fixture matches on the OKX book only. --private-replay decodes OKX private frames.\n\
                      --ops-check prints Tokyo health (no API). Tripped crash fuse exits 2 unless --ops-check.\n\
+                     --calibrate-check is fill-number status only; --promote-live always fails this period.\n\
                      No API keys. Live still double-locked. Default mode is shadow."
                 );
                 return Err("help".into());
@@ -170,6 +185,9 @@ fn parse_args() -> Result<Args, String> {
         ops_check,
         spec_replay,
         crash_fuse,
+        calibrate_check,
+        calibrate_journal,
+        promote_live,
     })
 }
 
@@ -633,6 +651,53 @@ async fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    if args.calibrate_check {
+        let report = fill_report(&cfg);
+        println!(
+            "{}",
+            serde_json::json!({
+                "level": "info",
+                "fill": report,
+            })
+        );
+        if args.calibrate_journal.is_none() && !args.promote_live {
+            return ExitCode::SUCCESS;
+        }
+    }
+
+    if let Some(path) = &args.calibrate_journal {
+        match summarize_journal(path) {
+            Ok(stats) => {
+                println!("{}", serde_json::json!({"level":"info","stats":stats}));
+                if !args.promote_live {
+                    return ExitCode::SUCCESS;
+                }
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"level":"error","event":"calibrate_journal_error","error":e})
+                );
+                return ExitCode::from(2);
+            }
+        }
+    }
+
+    if args.promote_live {
+        let err = promote_fill(Mode::Live, &cfg).unwrap_err();
+        eprintln!(
+            "{}",
+            serde_json::json!({
+                "level": "error",
+                "event": "promote_denied",
+                "reason": err.as_str(),
+                "message": err.message_zh(),
+                "note": "observation freeze is not calibration complete; live still gated",
+            })
+        );
+        return ExitCode::from(2);
+    }
+
     let decision = boot_decision(mode, &cfg);
     let level = if decision.ok { "info" } else { "error" };
     println!("{}", json_log(level, &decision));
@@ -723,7 +788,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 8: Tokyo ops, crash fuse, tick rebuild. Shadow default. Live double-locked.",
+                "note": "stage 9: fill-number interfaces only. Observation freeze is not live. Live double-locked.",
             })
         );
     }

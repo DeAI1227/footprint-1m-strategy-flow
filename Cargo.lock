@@ -266,6 +266,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "orderflow-calibrate"
+version = "0.0.0"
+dependencies = [
+ "orderflow-domain",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "orderflow-clock"
 version = "0.0.0"
 dependencies = [
@@ -351,6 +360,7 @@ name = "orderflowd"
 version = "0.0.0"
 dependencies = [
  "orderflow-book",
+ "orderflow-calibrate",
  "orderflow-context",
  "orderflow-domain",
  "orderflow-exec",
