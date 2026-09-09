@@ -2,7 +2,10 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use orderflow_domain::{boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue};
+use orderflow_book::{load_jsonl, BookConfig, BookEngine};
+use orderflow_domain::{
+    boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue, VenueRole,
+};
 use orderflow_exec::submit_live_open;
 use orderflow_footprint::{FootprintConfig, FootprintEngine};
 use orderflow_ingest::journal::JsonlJournal;
@@ -21,6 +24,7 @@ struct Args {
     symbol: String,
     /// Cap trades for smoke (0 = all).
     max_trades: usize,
+    book_replay: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -35,6 +39,7 @@ fn parse_args() -> Result<Args, String> {
     let mut journal = None;
     let mut symbol = "SOL".to_string();
     let mut max_trades = 0usize;
+    let mut book_replay = None;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -78,13 +83,19 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--max-trades needs a value")?;
                 max_trades = v.parse().map_err(|_| "bad --max-trades")?;
             }
+            "--book-replay" => {
+                let v = it.next().ok_or("--book-replay needs a path")?;
+                book_replay = Some(v.into());
+            }
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
                      \t[--replay PATH] [--venue okx|binance|bybit]\n\
                      \t[--replay-okx PATH] [--replay-binance PATH] [--replay-bybit PATH]\n\
                      \t[--journal out.jsonl] [--symbol SOL] [--max-trades N]\n\
-                     Resonance stays off. Replay venue is not the execution venue."
+                     \t[--book-replay PATH]\n\
+                     Resonance stays off. Replay venue is not the execution venue.\n\
+                     --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX."
                 );
                 return Err("help".into());
             }
@@ -103,6 +114,7 @@ fn parse_args() -> Result<Args, String> {
         journal,
         symbol,
         max_trades,
+        book_replay,
     })
 }
 
@@ -153,43 +165,196 @@ fn footprint_config(cfg: &AppConfig, symbol: &str) -> Result<FootprintConfig, St
     }
 }
 
+fn book_engine(venue: Venue, symbol: &str) -> Result<BookEngine, String> {
+    let cfg = match symbol.to_ascii_uppercase().as_str() {
+        "SOL" => BookConfig::sol(),
+        "SUI" => BookConfig::sui(),
+        other => return Err(format!("unknown symbol {other}; expected SOL|SUI")),
+    };
+    let role = match venue {
+        Venue::Okx => VenueRole::Execution,
+        Venue::Binance | Venue::Bybit => VenueRole::Resonance,
+    };
+    Ok(BookEngine::new(venue, role, cfg))
+}
+
+enum ReplayEv {
+    Trade(orderflow_domain::Trade),
+    Book(String),
+}
+
+fn merge_events(trades: Vec<orderflow_domain::Trade>, books: Vec<(i64, String)>) -> Vec<ReplayEv> {
+    let mut tagged: Vec<(i64, u8, ReplayEv)> = Vec::new();
+    for t in trades {
+        tagged.push((t.event_ts_ms, 0, ReplayEv::Trade(t)));
+    }
+    for (ts, line) in books {
+        tagged.push((ts, 1, ReplayEv::Book(line)));
+    }
+    tagged.sort_by_key(|(ts, k, _)| (*ts, *k));
+    tagged.into_iter().map(|(_, _, ev)| ev).collect()
+}
+
+fn stack_prices(fp: &orderflow_footprint::FootprintBar) -> Vec<f64> {
+    let mut v = fp.dale.buy_imb_prices.clone();
+    v.extend(fp.dale.sell_imb_prices.iter().copied());
+    v
+}
+
 fn run_one_replay(
     venue: Venue,
-    path: &Path,
+    trade_path: Option<&Path>,
+    book_path: Option<&Path>,
     args: &Args,
     cfg: &AppConfig,
     journal: Option<JsonlJournal>,
 ) -> Result<(), String> {
-    let mut trades = load_dump_sorted(venue, path, &args.symbol)?;
+    let mut trades = if let Some(path) = trade_path {
+        load_dump_sorted(venue, path, &args.symbol)?
+    } else {
+        Vec::new()
+    };
     if args.max_trades > 0 && trades.len() > args.max_trades {
         trades.truncate(args.max_trades);
     }
-    let fp_cfg = footprint_config(cfg, &args.symbol)?;
-    let mut eng = FootprintEngine::new(venue, args.symbol.clone(), fp_cfg);
+    let books = if let Some(path) = book_path {
+        load_jsonl(venue, path)?
+    } else {
+        Vec::new()
+    };
+    if trades.is_empty() && books.is_empty() {
+        return Err("no trades and no book frames".into());
+    }
+
+    let mut book_eng = if book_path.is_some() {
+        Some(book_engine(venue, &args.symbol)?)
+    } else {
+        None
+    };
     let mut closed_n = 0u64;
     let mut stack_dale = 0u64;
     let mut stack_valtos = 0u64;
-    for t in &trades {
-        debug_assert_eq!(t.venue, venue);
-        for ev in eng.push(t) {
-            closed_n += 1;
-            if ev.footprint.dale.aligned {
-                stack_dale += 1;
+    let mut book_closed_n = 0u64;
+    let mut last_quality = orderflow_domain::QualityVector::default();
+
+    if trades.is_empty() {
+        if let Some(book) = book_eng.as_mut() {
+            for (_, line) in &books {
+                book.apply_frame(line).map_err(|e| e.to_string())?;
             }
-            if ev.footprint.valtos.aligned {
-                stack_valtos += 1;
-            }
+            let snap = book.freeze_bar(None, &[]);
+            book.apply_quality(&mut last_quality);
+            book_closed_n += 1;
             if let Some(j) = &journal {
-                j.append_closed(&ev.bar, eng.cutter().quality())?;
                 j.append_json(&serde_json::json!({
-                    "event": "footprint_closed",
-                    "footprint": ev.footprint,
+                    "event": "book_closed",
+                    "book": snap,
                 }))?;
             }
         }
+    } else {
+        let fp_cfg = footprint_config(cfg, &args.symbol)?;
+        let mut eng = FootprintEngine::new(venue, args.symbol.clone(), fp_cfg);
+        let events = merge_events(trades, books);
+        for ev in events {
+            match ev {
+                ReplayEv::Book(line) => {
+                    if let Some(book) = book_eng.as_mut() {
+                        book.apply_frame(&line).map_err(|e| e.to_string())?;
+                    }
+                }
+                ReplayEv::Trade(t) => {
+                    debug_assert_eq!(t.venue, venue);
+                    if let Some(book) = book_eng.as_mut() {
+                        book.apply_trade(&t);
+                    }
+                    for closed in eng.push(&t) {
+                        closed_n += 1;
+                        if closed.footprint.dale.aligned {
+                            stack_dale += 1;
+                        }
+                        if closed.footprint.valtos.aligned {
+                            stack_valtos += 1;
+                        }
+                        last_quality = eng.cutter().quality().clone();
+                        if let Some(book) = book_eng.as_mut() {
+                            book.apply_quality(&mut last_quality);
+                            let stacks = stack_prices(&closed.footprint);
+                            let snap = book.freeze_bar(closed.footprint.poc, &stacks);
+                            book_closed_n += 1;
+                            if let Some(j) = &journal {
+                                j.append_closed(&closed.bar, &last_quality)?;
+                                j.append_json(&serde_json::json!({
+                                    "event": "footprint_closed",
+                                    "footprint": closed.footprint,
+                                }))?;
+                                j.append_json(&serde_json::json!({
+                                    "event": "book_closed",
+                                    "book": snap,
+                                }))?;
+                            }
+                        } else if let Some(j) = &journal {
+                            j.append_closed(&closed.bar, eng.cutter().quality())?;
+                            j.append_json(&serde_json::json!({
+                                "event": "footprint_closed",
+                                "footprint": closed.footprint,
+                            }))?;
+                        }
+                    }
+                }
+            }
+        }
+        last_quality = eng.cutter().quality().clone();
+        if let Some(book) = &book_eng {
+            book.apply_quality(&mut last_quality);
+        }
+        let q = last_quality.clone();
+        let book_ok = book_eng.as_ref().map(|b| b.health().is_ok());
+        let dom = book_eng
+            .as_ref()
+            .map(|b| b.freeze_1m(None, &[]).dom_entries_allowed);
+        let book_health = book_eng.as_ref().map(|b| b.health());
+        println!(
+            "{}",
+            serde_json::json!({
+                "level": "info",
+                "event": "replay_done",
+                "venue": venue.as_str(),
+                "symbol": args.symbol,
+                "execution_venue": "okx",
+                "resonance": format!("{:?}", cfg.runtime.resonance).to_ascii_lowercase(),
+                "copied_price_onto_okx": false,
+                "trades": q.trades_seen,
+                "bars_closed": q.bars_closed,
+                "closed_emitted": closed_n,
+                "late_trade": q.late_trade,
+                "out_of_order": q.out_of_order,
+                "gap_minutes": q.gap_minutes,
+                "reconnect": q.reconnect,
+                "forming_open_ms": eng.cutter().forming().map(|b| b.open_ms),
+                "footprint_wired": true,
+                "book_wired": book_eng.is_some(),
+                "book_ok": book_ok,
+                "book_health": book_health,
+                "dom_entries_allowed": dom,
+                "okx_book_ok": q.okx_book_ok,
+                "binance_book_ok": q.binance_book_ok,
+                "bybit_book_ok": q.bybit_book_ok,
+                "book_closed_emitted": book_closed_n,
+                "dale_aligned_stacks": stack_dale,
+                "valtos_aligned_stacks": stack_valtos,
+                "journal": journal.as_ref().map(|j| j.path().display().to_string()),
+                "note": "stage 3: per-venue L2 + 1m footprint; 300∥400 parallel; unfinished not entry; resonance off; live still gated",
+            })
+        );
+        return Ok(());
     }
-    // Replay ends: do not flush forming as closed (matches live).
-    let q = eng.cutter().quality();
+
+    let book_ok = book_eng.as_ref().map(|b| b.health().is_ok());
+    let dom = book_eng
+        .as_ref()
+        .map(|b| b.freeze_1m(None, &[]).dom_entries_allowed);
+    let book_health = book_eng.as_ref().map(|b| b.health());
     println!(
         "{}",
         serde_json::json!({
@@ -200,33 +365,48 @@ fn run_one_replay(
             "execution_venue": "okx",
             "resonance": format!("{:?}", cfg.runtime.resonance).to_ascii_lowercase(),
             "copied_price_onto_okx": false,
-            "trades": q.trades_seen,
-            "bars_closed": q.bars_closed,
+            "trades": last_quality.trades_seen,
+            "bars_closed": last_quality.bars_closed,
             "closed_emitted": closed_n,
-            "late_trade": q.late_trade,
-            "out_of_order": q.out_of_order,
-            "gap_minutes": q.gap_minutes,
-            "reconnect": q.reconnect,
-            "forming_open_ms": eng.cutter().forming().map(|b| b.open_ms),
-            "footprint_wired": true,
-            "dale_aligned_stacks": stack_dale,
-            "valtos_aligned_stacks": stack_valtos,
+            "footprint_wired": false,
+            "book_wired": book_eng.is_some(),
+            "book_ok": book_ok,
+            "book_health": book_health,
+            "dom_entries_allowed": dom,
+            "okx_book_ok": last_quality.okx_book_ok,
+            "binance_book_ok": last_quality.binance_book_ok,
+            "bybit_book_ok": last_quality.bybit_book_ok,
+            "book_closed_emitted": book_closed_n,
             "journal": journal.as_ref().map(|j| j.path().display().to_string()),
-            "note": "stage 2: per-venue 1m footprint; 300∥400 parallel; unfinished not entry; resonance off; live still gated",
+            "note": "stage 3: book-only replay; live still gated; resonance off",
         })
     );
     Ok(())
 }
 
 fn run_replays(args: &Args, cfg: &AppConfig) -> Result<(), String> {
-    let jobs = collect_replay_jobs(args);
+    let mut jobs = collect_replay_jobs(args);
     if jobs.is_empty() {
-        return Err("no replay path".into());
+        if args.book_replay.is_some() {
+            jobs.push((args.venue, PathBuf::new()));
+        } else {
+            return Err("no replay path".into());
+        }
     }
     let multi = jobs.len() > 1;
     for (venue, path) in &jobs {
         let journal = journal_for(args.journal.as_deref(), *venue, multi)?;
-        run_one_replay(*venue, path, args, cfg, journal)?;
+        let trades = if path.as_os_str().is_empty() {
+            None
+        } else {
+            Some(path.as_path())
+        };
+        let book = if *venue == args.venue {
+            args.book_replay.as_deref()
+        } else {
+            None
+        };
+        run_one_replay(*venue, trades, book, args, cfg, journal)?;
     }
     Ok(())
 }
@@ -261,7 +441,7 @@ async fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    if !collect_replay_jobs(&args).is_empty() {
+    if !collect_replay_jobs(&args).is_empty() || args.book_replay.is_some() {
         if let Err(e) = run_replays(&args, &cfg) {
             eprintln!(
                 "{}",
@@ -278,7 +458,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 2: per-venue 1m footprint + three-venue replay. Use --replay PATH [--venue okx|binance|bybit]. Resonance off. Live still gated.",
+                "note": "stage 3: per-venue L2 + 1m footprint. Use --replay PATH [--venue okx|binance|bybit] and/or --book-replay PATH. Resonance off. Live still gated.",
             })
         );
     }

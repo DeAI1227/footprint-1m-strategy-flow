@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: book-read
     content: Rust：三所 L2 健康、牆追蹤、足跡對讀旗標
-    status: pending
+    status: completed
   - id: context-regime
     content: 近窗量堆/擺動/制度與三所 k_of_n 共振（預設 off，仍計算；不算 VWAP/日盤 Profile）
     status: pending
@@ -139,8 +139,8 @@ Cargo workspace、PyO3、Python 套件、lint/test、`params/*.toml` 全佔位�
 **階段 2 — 足跡矩陣（Rust，三所各算，已完成）**  
 bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用一小段 SOL trades 做 golden replay（對齊矩陣，不是對齊盈虧）。三所 replay 分開對齊。300∥400 並列。未完成不當進場。最小量讀 `session_nonempty_side_p25_both`，禁止寫死 SOL 口數。
 
-**階段 3 — L2 + 對讀旗標（Rust，分所）**  
-書壞則該所盤口特徵作廢。執行所 book 壞：禁止依賴盤口的開倉。共振所 book 壞：該所對讀 `not_evaluated`。
+**階段 3 — L2 + 對讀旗標（Rust，分所，已完成）**  
+書壞則該所盤口特徵作廢。執行所 book 壞：禁止依賴盤口的開倉。共振所 book 壞：該所對讀 `not_evaluated`，不擋 OKX。Replay：`--book-replay PATH`（可與 `--replay` 依事件時間合併；同戳成交先於簿）。Python 腳本 F 狀態機仍未接。live 仍拒絕。
 
 **階段 4 — 位置與制度 + 共振欄位**  
 近窗量堆 / 擺動 / 量堆被接受旗標 / 清算與擁擠旗標。不算 VWAP、不算日盤 Profile。三所方向寫進快照；共振預設 `off`（仍記錄），不驅動下單價。

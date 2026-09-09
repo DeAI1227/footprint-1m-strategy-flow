@@ -1,0 +1,4 @@
+{"arg":{"channel":"books","instId":"SOL-USDT-SWAP"},"action":"snapshot","data":[{"asks":[["100.01","1","0","1"],["100.02","1","0","1"],["100.03","1","0","1"],["100.04","1","0","1"],["100.05","1","0","1"]],"bids":[["100.00","20","0","1"],["99.99","1","0","1"],["99.98","1","0","1"],["99.97","1","0","1"],["99.96","1","0","1"]],"ts":"1710000000000","checksum":0,"seqId":1,"prevSeqId":-1}]}
+{"arg":{"channel":"books","instId":"SOL-USDT-SWAP"},"action":"update","data":[{"asks":[],"bids":[["100.00","17","0","1"]],"ts":"1710000001000","checksum":0,"seqId":2,"prevSeqId":1}]}
+{"event":"subscribe","arg":{"channel":"books","instId":"SOL-USDT-SWAP"}}
+{"arg":{"channel":"books","instId":"SOL-USDT-SWAP"},"action":"update","data":[{"asks":[],"bids":[["100.00","17","0","1"]],"ts":"1710000002000","checksum":0,"seqId":3,"prevSeqId":2}]}
