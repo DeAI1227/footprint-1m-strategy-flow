@@ -53,6 +53,16 @@ impl BarCutter {
         self.forming.as_ref()
     }
 
+    pub fn symbol(&self) -> &str {
+        &self.symbol
+    }
+
+    /// Drop the forming bar after a spec rebuild. Closed history stays so late
+    /// trades still cannot rewrite a closed 1m.
+    pub fn drop_forming(&mut self) {
+        self.forming = None;
+    }
+
     pub fn mark_reconnect(&mut self) {
         self.quality.reconnect += 1;
         // Do not clear closed history. Do not reopen bars.

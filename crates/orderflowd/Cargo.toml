@@ -13,5 +13,6 @@ orderflow-footprint = { path = "../orderflow-footprint" }
 orderflow-book = { path = "../orderflow-book" }
 orderflow-context = { path = "../orderflow-context" }
 orderflow-exec = { path = "../orderflow-exec" }
+orderflow-ops = { path = "../orderflow-ops" }
 serde_json.workspace = true
 tokio.workspace = true

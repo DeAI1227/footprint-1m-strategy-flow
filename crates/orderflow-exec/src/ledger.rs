@@ -61,10 +61,7 @@ impl Ledger {
             Side::Sell => -fill.qty,
         };
         let new_qty = pos.qty + signed;
-        if pos.qty == 0.0
-            || (pos.qty > 0.0 && signed > 0.0)
-            || (pos.qty < 0.0 && signed < 0.0)
-        {
+        if pos.qty == 0.0 || (pos.qty > 0.0 && signed > 0.0) || (pos.qty < 0.0 && signed < 0.0) {
             let tot = pos.qty.abs() + fill.qty;
             pos.avg_px = if tot > 0.0 {
                 (pos.avg_px * pos.qty.abs() + fill.price * fill.qty) / tot

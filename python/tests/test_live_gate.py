@@ -24,6 +24,7 @@ from orderflow.scripts.f import ScriptF  # noqa: E402
 from orderflow.scripts.g import ScriptG  # noqa: E402
 from orderflow.scripts.unfinished import UnfinishedAuction  # noqa: E402
 from orderflow.reconcile import WIRED as RECONCILE_WIRED  # noqa: E402
+from orderflow.ops import WIRED as OPS_WIRED  # noqa: E402
 
 
 class TestPythonBoot(unittest.TestCase):
@@ -153,6 +154,7 @@ class TestScriptStubs(unittest.TestCase):
         self.assertIn("vwap", CONTEXT_FORBIDDEN)
         self.assertFalse(REGIME_IS_ENTRY)
         self.assertTrue(RECONCILE_WIRED)
+        self.assertTrue(OPS_WIRED)
 
 
 @unittest.skipUnless(BIN.is_file(), "orderflowd not built")

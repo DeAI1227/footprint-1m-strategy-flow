@@ -25,13 +25,11 @@ pub use risk::{Degrade, KillAction, KillState, RiskEngine};
 pub use shadow::ShadowPair;
 pub use sim::{match_trade, taker_fill, BookLevel, Fill, SimBook, WorkingOrder};
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
-use orderflow_domain::{
-    live_open_allowed, AppConfig, LiveDenied, Mode, TakerSide, Trade, Venue,
-};
+use orderflow_domain::{live_open_allowed, AppConfig, LiveDenied, Mode, TakerSide, Trade, Venue};
 
 /// Live HTTP write is not wired. Private decode and sim matching are.
 pub const WIRED: bool = false;
@@ -61,6 +59,9 @@ pub struct ExecGateway {
     pub rest: RestQueue,
     pub private_ok: bool,
     pub account_mismatch: bool,
+    /// Symbols paused after a tick/lot/contract change until the next clean closed 1m.
+    spec_pause: BTreeSet<String>,
+    rebuild_needed: BTreeSet<String>,
     seq_clock: i64,
 }
 
@@ -75,8 +76,49 @@ impl ExecGateway {
             rest: RestQueue::default(),
             private_ok: false,
             account_mismatch: false,
+            spec_pause: BTreeSet::new(),
+            rebuild_needed: BTreeSet::new(),
             seq_clock: 1,
         }
+    }
+
+    fn norm_symbol(symbol: &str) -> String {
+        symbol.to_ascii_uppercase()
+    }
+
+    /// Tick/lot/contract change: rebuild THAT symbol only. Cancel its working
+    /// orders and pause new opens until the next clean closed 1m.
+    pub fn apply_tick_change(&mut self, symbol: &str) {
+        let sym = Self::norm_symbol(symbol);
+        self.ledger
+            .working
+            .retain(|_, o| Self::norm_symbol(&o.symbol) != sym);
+        self.spec_pause.insert(sym.clone());
+        self.rebuild_needed.insert(sym);
+        self.rest.push(RestPriority::Cancel, "spec_tick_change");
+    }
+
+    pub fn on_clean_closed(&mut self, symbol: &str) {
+        let sym = Self::norm_symbol(symbol);
+        self.spec_pause.remove(&sym);
+        self.rebuild_needed.remove(&sym);
+    }
+
+    /// Missed closed 1m: stop opens, never stop flatten/risk.
+    pub fn on_missed_bar(&mut self) {
+        self.set_degrade(Degrade::StopOpens);
+    }
+
+    pub fn spec_paused(&self, symbol: &str) -> bool {
+        self.spec_pause.contains(&Self::norm_symbol(symbol))
+    }
+
+    pub fn spec_paused_symbols(&self) -> Vec<String> {
+        self.spec_pause.iter().cloned().collect()
+    }
+
+    pub fn rebuild_needed(&self, symbol: &str) -> bool {
+        self.rebuild_needed.contains(&Self::norm_symbol(symbol))
     }
 
     pub fn set_book(&mut self, book: SimBook) {
@@ -176,6 +218,14 @@ impl ExecGateway {
     }
 
     fn submit_open(&mut self, intent: &mut OrderIntent, cfg: &AppConfig) -> SubmitResult {
+        if self.spec_paused(&intent.symbol) {
+            return SubmitResult {
+                accepted: false,
+                reason: "spec_pause",
+                client_id: None,
+                qty: 0.0,
+            };
+        }
         if self.account_mismatch {
             return SubmitResult {
                 accepted: false,
@@ -342,8 +392,7 @@ impl ExecGateway {
         if trade.venue != Venue::Okx {
             return Vec::new();
         }
-        self.marks
-            .insert(trade.symbol.clone(), trade.price);
+        self.marks.insert(trade.symbol.clone(), trade.price);
         self.risk.mark = trade.price;
         let ids: Vec<String> = self.ledger.working.keys().cloned().collect();
         let mut out = Vec::new();
@@ -366,10 +415,12 @@ impl ExecGateway {
         if self.risk.daily_loss_tripped(self.unrealized())
             && self.risk.kill.action == KillAction::Off
         {
-            self.risk.trip(KillAction::ReduceOnly, "daily_loss", trade.event_ts_ms);
+            self.risk
+                .trip(KillAction::ReduceOnly, "daily_loss", trade.event_ts_ms);
         }
         if self.risk.liq_buffer_breached() && self.risk.kill.action == KillAction::Off {
-            self.risk.trip(KillAction::FlattenAll, "liq_buffer", trade.event_ts_ms);
+            self.risk
+                .trip(KillAction::FlattenAll, "liq_buffer", trade.event_ts_ms);
         }
         out
     }
@@ -412,8 +463,8 @@ pub fn run_sim_fixture(
         if line.is_empty() {
             continue;
         }
-        let v: serde_json::Value = serde_json::from_str(line)
-            .map_err(|e| format!("{}:{}: {e}", path.display(), i + 1))?;
+        let v: serde_json::Value =
+            serde_json::from_str(line).map_err(|e| format!("{}:{}: {e}", path.display(), i + 1))?;
         match v.get("event").and_then(|x| x.as_str()).unwrap_or("") {
             "book" => {
                 let book: SimBook = serde_json::from_value(v).map_err(|e| e.to_string())?;
@@ -428,10 +479,7 @@ pub fn run_sim_fixture(
                 }
             }
             "trade" => {
-                let venue = v
-                    .get("venue")
-                    .and_then(|x| x.as_str())
-                    .unwrap_or("okx");
+                let venue = v.get("venue").and_then(|x| x.as_str()).unwrap_or("okx");
                 let trade = Trade {
                     venue: Venue::parse(venue)?,
                     symbol: v
@@ -445,7 +493,10 @@ pub fn run_sim_fixture(
                     processed_ts_ms: 0,
                     price: v.get("price").and_then(|x| x.as_f64()).unwrap_or(0.0),
                     size: v.get("size").and_then(|x| x.as_f64()).unwrap_or(0.0),
-                    taker_side: match v.get("taker_side").and_then(|x| x.as_str()).unwrap_or("sell")
+                    taker_side: match v
+                        .get("taker_side")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("sell")
                     {
                         "buy" => TakerSide::Buy,
                         _ => TakerSide::Sell,
@@ -701,7 +752,13 @@ mod tests {
         assert_eq!(cfg.sui.tick_sz, 0.0001);
         assert_eq!(cfg.sol.tick_sz, 0.01);
         let risk = RiskEngine::new(cfg.runtime.risk.clone());
-        let sol = risk.size_qty(100.0, 99.0, cfg.sol.tick_sz, cfg.sol.ct_val, cfg.sol.tick_sz);
+        let sol = risk.size_qty(
+            100.0,
+            99.0,
+            cfg.sol.tick_sz,
+            cfg.sol.ct_val,
+            cfg.sol.tick_sz,
+        );
         let sui = risk.size_qty(1.0, 0.9, cfg.sui.tick_sz, cfg.sui.ct_val, cfg.sui.tick_sz);
         assert_ne!(sol, sui);
     }
@@ -814,7 +871,8 @@ mod tests {
 
     #[test]
     fn binance_private_is_refused() {
-        let evs = parse_private_frame(r#"{"venue":"binance","stream":"binance.user","data":[]}"#).unwrap();
+        let evs = parse_private_frame(r#"{"venue":"binance","stream":"binance.user","data":[]}"#)
+            .unwrap();
         assert!(matches!(evs[0], PrivateEvent::Refused("not_okx_private")));
     }
 
@@ -823,7 +881,10 @@ mod tests {
         let cfg = cfg();
         let mut intent = OrderIntent::sim_open("SOL", Side::Buy, 100.0, 1.0);
         intent.copied_price_onto_okx = true;
-        assert_eq!(encode_place(&intent, &cfg, 1).unwrap_err(), "copied_price_onto_okx");
+        assert_eq!(
+            encode_place(&intent, &cfg, 1).unwrap_err(),
+            "copied_price_onto_okx"
+        );
     }
 
     #[test]
@@ -896,5 +957,70 @@ mod tests {
         assert!(s.contains("orders"));
         assert!(!s.to_ascii_lowercase().contains("binance"));
         assert!(!s.to_ascii_lowercase().contains("bybit"));
+    }
+
+    #[test]
+    fn sol_tick_change_cancels_sol_only_and_pauses_until_clean_bar() {
+        let cfg = cfg();
+        let mut gw = ExecGateway::new(Mode::Sim, &cfg);
+        gw.set_book(SimBook::okx(0.01, &[(100.00, 0.0)], &[(100.01, 2.0)]));
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.00, 1.0), &cfg)
+                .reason,
+            "accepted"
+        );
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SUI", Side::Buy, 1.2345, 1.0), &cfg)
+                .reason,
+            "accepted"
+        );
+        assert_eq!(gw.ledger.working.len(), 2);
+        gw.apply_tick_change("SOL");
+        assert!(gw.spec_paused("SOL"));
+        assert!(!gw.spec_paused("SUI"));
+        assert_eq!(gw.ledger.working.len(), 1);
+        assert!(gw
+            .ledger
+            .working
+            .values()
+            .all(|o| o.symbol.eq_ignore_ascii_case("SUI")));
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.00, 1.0), &cfg)
+                .reason,
+            "spec_pause"
+        );
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SUI", Side::Buy, 1.2345, 1.0), &cfg)
+                .reason,
+            "accepted"
+        );
+        gw.on_clean_closed("SOL");
+        assert!(!gw.spec_paused("SOL"));
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.00, 1.0), &cfg)
+                .reason,
+            "accepted"
+        );
+    }
+
+    #[test]
+    fn missed_bar_stops_opens_not_flatten() {
+        let cfg = cfg();
+        let mut gw = ExecGateway::new(Mode::Sim, &cfg);
+        gw.set_book(SimBook::okx(0.01, &[(100.00, 0.0)], &[(100.01, 2.0)]));
+        gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.00, 1.0), &cfg);
+        gw.on_trade(&okx_trade(100.00, 1.0, TakerSide::Sell));
+        assert_eq!(gw.ledger.position("SOL"), 1.0);
+        gw.on_missed_bar();
+        assert_eq!(
+            gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.00, 1.0), &cfg)
+                .reason,
+            "degrade_stop_opens"
+        );
+        let mut flat = OrderIntent::sim_open("SOL", Side::Sell, 100.01, 1.0);
+        flat.kind = IntentKind::Flatten;
+        let r = gw.submit(flat, &cfg);
+        assert!(r.accepted, "{}", r.reason);
+        assert_eq!(gw.ledger.position("SOL"), 0.0);
     }
 }

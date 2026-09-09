@@ -1,0 +1,17 @@
+[package]
+name = "orderflow-ops"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Tokyo ops: crash fuse, log rotate, tick rebuild, missed-bar, reconnect"
+
+[dependencies]
+orderflow-domain.workspace = true
+orderflow-context = { path = "../orderflow-context" }
+orderflow-exec = { path = "../orderflow-exec" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

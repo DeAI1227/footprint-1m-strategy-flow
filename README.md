@@ -3,7 +3,7 @@
 死守**足跡圖流派**的 SOL / SUI 1 分鐘訂單流規格與參數校準。  
 不是形態學、不是 Market Profile、不是 VWAP、不是 ICT。
 
-目前這個 repo 有規格、觀察日誌、階段 0–6，以及**階段 7：OKX 私有流解碼 + 下單編碼（默認 shadow，live 雙鎖）**。還沒有正式 TCP WS 長連當 daemon、也沒有真實下單。**live 仍硬拒絕。共振預設 `off`（仍記錄）。**
+目前這個 repo 有規格、觀察日誌、階段 0–7，以及**階段 8：東京運行面（崩潰熔斷、tick 重建該標的、漏棒停開倉）**。還沒有正式 TCP WS 長連當 daemon、也沒有真實下單。**live 仍硬拒絕。共振預設 `off`（仍記錄）。**
 
 ## 啟動
 
@@ -31,6 +31,10 @@ cargo run -p orderflowd -- --mode sim --sim-fixture crates/orderflow-exec/tests/
 PYTHONPATH=python python3 -m orderflow --mode sim --once --reconcile-local python/tests/fixtures/local_ledger.json --reconcile-exchange python/tests/fixtures/exchange_ledger.json
 # 階段 7：OKX 私有 frame replay（解碼，不下單）
 cargo run -p orderflowd -- --mode shadow --private-replay crates/orderflow-exec/tests/fixtures/okx_private.jsonl
+# 階段 8：東京運行面（無 API；熔斷跳開時非 --ops-check 會退出 2）
+cargo run -p orderflowd -- --ops-check
+cargo run -p orderflowd -- --mode shadow --spec-replay crates/orderflow-ops/tests/fixtures/spec_replay.jsonl
+PYTHONPATH=python python3 -m orderflow --ops-check
 ```
 
 配置：[`params/runtime.toml`](params/runtime.toml)、[`params/sol.toml`](params/sol.toml)、[`params/sui.toml`](params/sui.toml)。數字只從 toml 讀。執行所仍是 OKX；共振預設 `off`。觀察稿不是樣本外驗證。
@@ -105,4 +109,5 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 **階段 4**：近窗量堆 / 擺動 / 接受與假離開 / 清算與資金費黑窗 / 三所方向。共振 `off` 仍記日誌，不抄外所價。  
 **階段 5**：Python A–G；硬否決與互斥一次做完；影子信號不是訂單。  
 **階段 6**：OKX 盤口本地撮合、kill switch / 日虧 / 強平緩衝 / 降載；對帳以交易所為真。  
-**階段 7**：OKX 私有解碼與下單編碼；live 雙鎖；SUI 影子並行。下一框是階段 8（東京運行面）。**禁止 live。**
+**階段 7**：OKX 私有解碼與下單編碼；live 雙鎖；SUI 影子並行。  
+**階段 8**：東京運行面（熔斷、tick 重建該標的、漏棒）。下一框是階段 9（填數字，本計劃不做完校準）。**禁止 live。**

@@ -2,7 +2,8 @@
 
 Stage 5: A–G machines read frozen Rust 1m snapshots.
 Stage 6: fixture reconcile (no API keys). Stage 7: SOL and SUI shadow in
-parallel. Do not parse venue WebSocket or assemble a second footprint matrix here.
+parallel. Stage 8: Tokyo ops health. Do not parse venue WebSocket or assemble
+a second footprint matrix here.
 """
 
 from .boot import LiveDenied, boot_once, live_allowed
