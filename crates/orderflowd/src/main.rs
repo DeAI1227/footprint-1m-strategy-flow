@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use orderflow_book::{load_jsonl, BookConfig, BookEngine};
+use orderflow_context::{
+    BarIn, ContextConfig, ContextEngine, RegimeInputs, ResonanceBook, VenueDir,
+};
 use orderflow_domain::{
     boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue, VenueRole,
 };
@@ -25,6 +28,7 @@ struct Args {
     /// Cap trades for smoke (0 = all).
     max_trades: usize,
     book_replay: Option<PathBuf>,
+    regime_replay: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -40,6 +44,7 @@ fn parse_args() -> Result<Args, String> {
     let mut symbol = "SOL".to_string();
     let mut max_trades = 0usize;
     let mut book_replay = None;
+    let mut regime_replay = None;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -87,14 +92,18 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--book-replay needs a path")?;
                 book_replay = Some(v.into());
             }
+            "--regime-replay" => {
+                let v = it.next().ok_or("--regime-replay needs a path")?;
+                regime_replay = Some(v.into());
+            }
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
                      \t[--replay PATH] [--venue okx|binance|bybit]\n\
                      \t[--replay-okx PATH] [--replay-binance PATH] [--replay-bybit PATH]\n\
                      \t[--journal out.jsonl] [--symbol SOL] [--max-trades N]\n\
-                     \t[--book-replay PATH]\n\
-                     Resonance stays off. Replay venue is not the execution venue.\n\
+                     \t[--book-replay PATH] [--regime-replay PATH]\n\
+                     Resonance stays off (still recorded). Replay venue is not the execution venue.\n\
                      --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX."
                 );
                 return Err("help".into());
@@ -115,6 +124,7 @@ fn parse_args() -> Result<Args, String> {
         symbol,
         max_trades,
         book_replay,
+        regime_replay,
     })
 }
 
@@ -165,6 +175,15 @@ fn footprint_config(cfg: &AppConfig, symbol: &str) -> Result<FootprintConfig, St
     }
 }
 
+fn context_config(cfg: &AppConfig, symbol: &str) -> Result<ContextConfig, String> {
+    let p = match symbol.to_ascii_uppercase().as_str() {
+        "SOL" => &cfg.sol,
+        "SUI" => &cfg.sui,
+        other => return Err(format!("unknown symbol {other}; expected SOL|SUI")),
+    };
+    ContextConfig::from_symbol(p, cfg.runtime.resonance_k)
+}
+
 fn book_engine(venue: Venue, symbol: &str) -> Result<BookEngine, String> {
     let cfg = match symbol.to_ascii_uppercase().as_str() {
         "SOL" => BookConfig::sol(),
@@ -201,6 +220,31 @@ fn stack_prices(fp: &orderflow_footprint::FootprintBar) -> Vec<f64> {
     v
 }
 
+fn push_context(
+    ctx_eng: &mut ContextEngine,
+    res_book: &mut ResonanceBook,
+    fp: &orderflow_footprint::FootprintBar,
+    regime: &RegimeInputs,
+    journal: Option<&JsonlJournal>,
+) -> Result<u64, String> {
+    let bar = BarIn::from_footprint(fp);
+    res_book.insert(VenueDir::from_delta(
+        fp.venue,
+        fp.open_ms,
+        fp.delta,
+        bar.stack_sign(),
+        true,
+    ));
+    let snap = ctx_eng.push(bar, regime);
+    if let Some(j) = journal {
+        j.append_json(&serde_json::json!({
+            "event": "context_closed",
+            "context": snap,
+        }))?;
+    }
+    Ok(1)
+}
+
 fn run_one_replay(
     venue: Venue,
     trade_path: Option<&Path>,
@@ -208,7 +252,9 @@ fn run_one_replay(
     args: &Args,
     cfg: &AppConfig,
     journal: Option<JsonlJournal>,
-) -> Result<(), String> {
+    regime: &RegimeInputs,
+    res_book: &mut ResonanceBook,
+) -> Result<u64, String> {
     let mut trades = if let Some(path) = trade_path {
         load_dump_sorted(venue, path, &args.symbol)?
     } else {
@@ -225,6 +271,8 @@ fn run_one_replay(
     if trades.is_empty() && books.is_empty() {
         return Err("no trades and no book frames".into());
     }
+    let mut ctx_eng = ContextEngine::new(context_config(cfg, &args.symbol)?);
+    let mut context_n = 0u64;
 
     let mut book_eng = if book_path.is_some() {
         Some(book_engine(venue, &args.symbol)?)
@@ -277,6 +325,13 @@ fn run_one_replay(
                             stack_valtos += 1;
                         }
                         last_quality = eng.cutter().quality().clone();
+                        context_n += push_context(
+                            &mut ctx_eng,
+                            res_book,
+                            &closed.footprint,
+                            regime,
+                            journal.as_ref(),
+                        )?;
                         if let Some(book) = book_eng.as_mut() {
                             book.apply_quality(&mut last_quality);
                             let stacks = stack_prices(&closed.footprint);
@@ -343,11 +398,13 @@ fn run_one_replay(
                 "book_closed_emitted": book_closed_n,
                 "dale_aligned_stacks": stack_dale,
                 "valtos_aligned_stacks": stack_valtos,
+                "context_closed_emitted": context_n,
+                "context_wired": true,
                 "journal": journal.as_ref().map(|j| j.path().display().to_string()),
-                "note": "stage 3: per-venue L2 + 1m footprint; 300∥400 parallel; unfinished not entry; resonance off; live still gated",
+                "note": "stage 4: context/regime/resonance fields; 300∥400 parallel; unfinished not entry; resonance off; live still gated",
             })
         );
-        return Ok(());
+        return Ok(context_n);
     }
 
     let book_ok = book_eng.as_ref().map(|b| b.health().is_ok());
@@ -377,11 +434,13 @@ fn run_one_replay(
             "binance_book_ok": last_quality.binance_book_ok,
             "bybit_book_ok": last_quality.bybit_book_ok,
             "book_closed_emitted": book_closed_n,
+            "context_closed_emitted": context_n,
+            "context_wired": true,
             "journal": journal.as_ref().map(|j| j.path().display().to_string()),
-            "note": "stage 3: book-only replay; live still gated; resonance off",
+            "note": "stage 4: book-only replay; live still gated; resonance off",
         })
     );
-    Ok(())
+    Ok(context_n)
 }
 
 fn run_replays(args: &Args, cfg: &AppConfig) -> Result<(), String> {
@@ -393,9 +452,19 @@ fn run_replays(args: &Args, cfg: &AppConfig) -> Result<(), String> {
             return Err("no replay path".into());
         }
     }
+    let regime = if let Some(p) = &args.regime_replay {
+        RegimeInputs::load_jsonl(p)?
+    } else {
+        RegimeInputs::default()
+    };
+    let mut res_book = ResonanceBook::default();
     let multi = jobs.len() > 1;
+    let mut okx_journal_path: Option<PathBuf> = None;
     for (venue, path) in &jobs {
         let journal = journal_for(args.journal.as_deref(), *venue, multi)?;
+        if *venue == Venue::Okx {
+            okx_journal_path = journal.as_ref().map(|j| j.path().to_path_buf());
+        }
         let trades = if path.as_os_str().is_empty() {
             None
         } else {
@@ -406,7 +475,50 @@ fn run_replays(args: &Args, cfg: &AppConfig) -> Result<(), String> {
         } else {
             None
         };
-        run_one_replay(*venue, trades, book, args, cfg, journal)?;
+        run_one_replay(
+            *venue,
+            trades,
+            book,
+            args,
+            cfg,
+            journal,
+            &regime,
+            &mut res_book,
+        )?;
+    }
+    let minutes = res_book.okx_minutes();
+    let mut resonance_n = 0u64;
+    if let Some(path) = okx_journal_path.or_else(|| args.journal.clone()) {
+        if !minutes.is_empty() {
+            let j = JsonlJournal::open_append(path)?;
+            for t in &minutes {
+                let snap = res_book.snapshot(*t, cfg.runtime.resonance, cfg.runtime.resonance_k);
+                j.append_json(&serde_json::json!({
+                    "event": "resonance_closed",
+                    "resonance": snap,
+                }))?;
+                resonance_n += 1;
+            }
+        }
+    } else {
+        resonance_n = minutes.len() as u64;
+    }
+    if !minutes.is_empty() {
+        let sample = res_book.snapshot(minutes[0], cfg.runtime.resonance, cfg.runtime.resonance_k);
+        println!(
+            "{}",
+            serde_json::json!({
+                "level": "info",
+                "event": "resonance_done",
+                "minutes": minutes.len(),
+                "resonance_closed_emitted": resonance_n,
+                "mode": format!("{:?}", cfg.runtime.resonance).to_ascii_lowercase(),
+                "k": cfg.runtime.resonance_k,
+                "used_for_entry": sample.used_for_entry,
+                "copied_price_onto_okx": false,
+                "note": "stage 4: resonance recorded, mode off, never copies peer prices onto OKX",
+            })
+        );
     }
     Ok(())
 }
@@ -458,7 +570,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 3: per-venue L2 + 1m footprint. Use --replay PATH [--venue okx|binance|bybit] and/or --book-replay PATH. Resonance off. Live still gated.",
+                "note": "stage 4: context/regime/resonance. Use --replay PATH [--venue okx|binance|bybit], --book-replay PATH, --regime-replay PATH. Resonance off. Live still gated.",
             })
         );
     }

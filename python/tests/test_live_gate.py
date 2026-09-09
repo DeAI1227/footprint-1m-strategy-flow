@@ -17,6 +17,9 @@ sys.path.insert(0, str(ROOT / "python"))
 from orderflow.boot import boot_once, live_allowed  # noqa: E402
 from orderflow.config import load_config  # noqa: E402
 from orderflow.scripts import all_disabled  # noqa: E402
+from orderflow.context import FORBIDDEN as CONTEXT_FORBIDDEN  # noqa: E402
+from orderflow.context import WIRED as CONTEXT_WIRED  # noqa: E402
+from orderflow.regime import ENTRY_REASON as REGIME_IS_ENTRY  # noqa: E402
 from orderflow.scripts.f import ScriptF  # noqa: E402
 from orderflow.scripts.g import ScriptG  # noqa: E402
 from orderflow.scripts.unfinished import UnfinishedAuction  # noqa: E402
@@ -120,6 +123,8 @@ class TestParams(unittest.TestCase):
         self.assertEqual(cfg.sol["script_f"], "not_evaluated")
         self.assertFalse(cfg.sol["unfinished_is_entry"])
         self.assertFalse(cfg.sol["script_g_is_entry"])
+        self.assertEqual(cfg.sol["accept_bars"], 3)
+        self.assertEqual(cfg.runtime["resonance_k"], 1)
 
     def test_sui_language_runnable_but_not_live(self):
         cfg = load_config(PARAMS)
@@ -141,6 +146,9 @@ class TestScriptStubs(unittest.TestCase):
         self.assertEqual(ScriptF().evaluation, "not_evaluated")
         self.assertFalse(ScriptG().is_entry)
         self.assertFalse(UnfinishedAuction.is_entry)
+        self.assertTrue(CONTEXT_WIRED)
+        self.assertIn("vwap", CONTEXT_FORBIDDEN)
+        self.assertFalse(REGIME_IS_ENTRY)
 
 
 @unittest.skipUnless(BIN.is_file(), "orderflowd not built")

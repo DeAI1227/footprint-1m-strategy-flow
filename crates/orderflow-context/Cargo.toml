@@ -1,0 +1,16 @@
+[package]
+name = "orderflow-context"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Near-window volume stacks, swings, accept/fake-leave, regime vetoes, resonance fields. No VWAP / TPO."
+
+[dependencies]
+orderflow-domain.workspace = true
+orderflow-footprint = { path = "../orderflow-footprint" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+orderflow-ingest = { path = "../orderflow-ingest" }

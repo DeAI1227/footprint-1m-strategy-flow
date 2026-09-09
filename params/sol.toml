@@ -33,6 +33,7 @@ value_area_scope = "bar"
 
 swing_n = 5
 leave_bars = 1
+accept_bars = 3
 trap_bars = 3
 
 unfinished_is_entry = false

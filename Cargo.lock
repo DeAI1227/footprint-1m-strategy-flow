@@ -273,6 +273,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "orderflow-context"
+version = "0.0.0"
+dependencies = [
+ "orderflow-domain",
+ "orderflow-footprint",
+ "orderflow-ingest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "orderflow-domain"
 version = "0.0.0"
 dependencies = [
@@ -326,6 +337,7 @@ name = "orderflowd"
 version = "0.0.0"
 dependencies = [
  "orderflow-book",
+ "orderflow-context",
  "orderflow-domain",
  "orderflow-exec",
  "orderflow-footprint",

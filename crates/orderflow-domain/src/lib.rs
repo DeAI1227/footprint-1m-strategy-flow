@@ -61,7 +61,7 @@ impl Mode {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Venue {
     Okx,
@@ -352,6 +352,9 @@ pub struct RuntimeConfig {
     pub school: String,
     pub execution_venue: Venue,
     pub resonance: ResonanceMode,
+    /// Peers that must agree with OKX when mode is k_of_n. Observation placeholder.
+    #[serde(default = "default_resonance_k")]
+    pub resonance_k: u32,
     pub calibration: CalibrationGate,
     pub venues: VenuesConfig,
     pub risk: RiskPlaceholder,
@@ -409,6 +412,9 @@ pub struct SymbolParams {
     pub value_area_scope: ValueAreaScope,
     pub swing_n: u32,
     pub leave_bars: u32,
+    /// Consecutive outside POCs after a leave. Week-2 script D used 3. Not calibrated.
+    #[serde(default = "default_accept_bars")]
+    pub accept_bars: u32,
     pub trap_bars: u32,
     pub unfinished_is_entry: bool,
     pub script_g_is_entry: bool,
@@ -424,6 +430,14 @@ pub struct SymbolParams {
     pub out_of_sample_validated: bool,
     #[serde(default)]
     pub shadow_only: bool,
+}
+
+fn default_resonance_k() -> u32 {
+    1
+}
+
+fn default_accept_bars() -> u32 {
+    3
 }
 
 impl SymbolParams {
@@ -668,7 +682,9 @@ mod tests {
         assert!(!cfg.sol.script_g_is_entry);
         assert_eq!(cfg.sol.swing_n, 5);
         assert_eq!(cfg.sol.leave_bars, 1);
+        assert_eq!(cfg.sol.accept_bars, 3);
         assert_eq!(cfg.sol.trap_bars, 3);
+        assert_eq!(cfg.runtime.resonance_k, 1);
         assert_eq!(cfg.sol.liq_oi_1h_veto_pct, -0.02);
         assert_eq!(cfg.sol.liq_1m_notional_rule, "sample_p95");
         assert_eq!(cfg.sol.funding_hours_utc, vec![0, 8, 16]);

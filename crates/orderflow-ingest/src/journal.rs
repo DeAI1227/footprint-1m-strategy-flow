@@ -34,6 +34,20 @@ impl JsonlJournal {
         Ok(Self { path })
     }
 
+    pub fn open_append(path: impl AsRef<Path>) -> Result<Self, String> {
+        let path = path.as_ref().to_path_buf();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+        }
+        OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .map_err(|e| format!("open {}: {e}", path.display()))?;
+        Ok(Self { path })
+    }
+
     pub fn append_closed(&self, bar: &Bar1m, quality: &QualityVector) -> Result<(), String> {
         use orderflow_domain::BarState;
         if !matches!(bar.state, BarState::Closed) {
