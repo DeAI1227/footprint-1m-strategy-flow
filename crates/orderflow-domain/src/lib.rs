@@ -363,6 +363,8 @@ pub struct RuntimeConfig {
     pub risk: RiskPlaceholder,
     #[serde(default)]
     pub exec: ExecConfig,
+    #[serde(default)]
+    pub ops: OpsConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -393,6 +395,38 @@ impl Default for ExecConfig {
             entry_ttl_ms: default_entry_ttl_ms(),
             max_amend: default_max_amend(),
             max_slippage_ticks: default_max_slippage_ticks(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpsConfig {
+    #[serde(default = "default_crash_window_s")]
+    pub crash_window_s: u32,
+    #[serde(default = "default_crash_burst")]
+    pub crash_burst: u32,
+    #[serde(default)]
+    pub clear_crash_on_start: bool,
+    #[serde(default = "default_log_max_bytes")]
+    pub log_max_bytes: u64,
+    #[serde(default = "default_log_keep")]
+    pub log_keep: u32,
+    #[serde(default = "default_disk_min_free")]
+    pub disk_min_free_bytes: u64,
+    #[serde(default = "default_hot_journal_days")]
+    pub hot_journal_days: u32,
+}
+
+impl Default for OpsConfig {
+    fn default() -> Self {
+        Self {
+            crash_window_s: default_crash_window_s(),
+            crash_burst: default_crash_burst(),
+            clear_crash_on_start: false,
+            log_max_bytes: default_log_max_bytes(),
+            log_keep: default_log_keep(),
+            disk_min_free_bytes: default_disk_min_free(),
+            hot_journal_days: default_hot_journal_days(),
         }
     }
 }
@@ -553,6 +587,30 @@ fn default_max_amend() -> u32 {
 
 fn default_max_slippage_ticks() -> u32 {
     4
+}
+
+fn default_crash_window_s() -> u32 {
+    120
+}
+
+fn default_crash_burst() -> u32 {
+    5
+}
+
+fn default_log_max_bytes() -> u64 {
+    104_857_600
+}
+
+fn default_log_keep() -> u32 {
+    7
+}
+
+fn default_disk_min_free() -> u64 {
+    1_073_741_824
+}
+
+fn default_hot_journal_days() -> u32 {
+    3
 }
 
 impl SymbolParams {
@@ -844,6 +902,10 @@ mod tests {
         assert!(!cfg.runtime.exec.live_send);
         assert_eq!(cfg.runtime.mode_default, Mode::Shadow);
         assert_eq!(cfg.runtime.exec.pos_mode, "net_mode");
+        assert_eq!(cfg.runtime.ops.crash_burst, 5);
+        assert_eq!(cfg.runtime.ops.crash_window_s, 120);
+        assert!(!cfg.runtime.ops.clear_crash_on_start);
+        assert_eq!(cfg.runtime.ops.log_keep, 7);
     }
 
     #[test]

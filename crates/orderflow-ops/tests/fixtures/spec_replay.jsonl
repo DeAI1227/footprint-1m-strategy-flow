@@ -1,0 +1,8 @@
+{"event":"spec","symbol":"SOL","tick_size":0.01,"lot_size":1.0,"contract_mult":1.0}
+{"event":"spec","symbol":"SUI","tick_size":0.0001,"lot_size":1.0,"contract_mult":1.0}
+{"event":"book","venue":"okx","tick_sz":0.01,"bids":[{"price":100.0,"size":0.0}],"asks":[{"price":100.01,"size":2.0}]}
+{"event":"intent","kind":"sim_open","symbol":"SOL","side":"buy","limit_px":100.0,"qty":1.0,"invalidation_px":99.0,"script":"A","copied_price_onto_okx":false,"live":false}
+{"event":"intent","kind":"sim_open","symbol":"SUI","side":"buy","limit_px":1.2345,"qty":1.0,"invalidation_px":1.2,"script":"A","copied_price_onto_okx":false,"live":false}
+{"event":"closed","symbol":"SOL","venue":"okx","open_ms":0}
+{"event":"spec","symbol":"SOL","tick_size":0.02,"lot_size":1.0,"contract_mult":1.0}
+{"event":"closed","symbol":"SOL","venue":"okx","open_ms":120000}

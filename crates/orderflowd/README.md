@@ -6,7 +6,8 @@
 階段 3：`--book-replay` 凍結分所 L2（`book_closed` JSONL）。執行所書壞才關 DOM 開倉。  
 階段 4：已閉合足跡推近窗量堆 / 擺動 / 制度（`context_closed`）與三所方向（`resonance_closed`）。共振模式仍 `off`。  
 階段 6：`--sim-fixture` 用 OKX 盤口做本地假成交。Kill switch / 日虧 / 強平緩衝在熱路徑。  
-階段 7：`--private-replay` 解碼 OKX 私有 frame。默認 shadow。live 雙鎖。SUI 影子參數獨立。
+階段 7：`--private-replay` 解碼 OKX 私有 frame。默認 shadow。live 雙鎖。SUI 影子參數獨立。  
+階段 8：`--ops-check` / `--spec-replay` / `--crash-fuse`。tick 變更只重建該標的。漏棒停開倉。live 仍拒絕。
 
 ```bash
 cargo run -p orderflowd -- --mode shadow --once
@@ -18,6 +19,8 @@ cargo run -p orderflowd -- --mode shadow --book-replay crates/orderflow-book/tes
 cargo run -p orderflowd -- --mode shadow --replay crates/orderflow-footprint/tests/fixtures/sol_okx_stack3.jsonl --regime-replay crates/orderflow-context/tests/fixtures/sol_regime.jsonl
 cargo run -p orderflowd -- --mode sim --sim-fixture crates/orderflow-exec/tests/fixtures/okx_sim.jsonl
 cargo run -p orderflowd -- --mode shadow --private-replay crates/orderflow-exec/tests/fixtures/okx_private.jsonl
+cargo run -p orderflowd -- --ops-check
+cargo run -p orderflowd -- --mode shadow --spec-replay crates/orderflow-ops/tests/fixtures/spec_replay.jsonl
 ```
 
 Replay 所不是執行所。執行仍是 OKX。live 仍拒絕。

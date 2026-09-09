@@ -4,6 +4,7 @@ Reads params/*.toml, writes one JSON log line, no secrets.
 Live / live_small exit 2 with reason=params_not_calibrated.
 Optional --journal PATH steps the Stage 5 decision engine on Rust snapshots.
 Optional --reconcile-local / --reconcile-exchange compare fixtures (no API keys).
+Optional --ops-check prints Tokyo health (no API).
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from .config import MODES, default_config_dir, load_config
 from .decision.engine import DecisionEngine
 from .decision.snapshot import load_journal
 from .logfmt import json_log
+from .ops import ops_line
 from .reconcile import reconcile
 
 
@@ -31,7 +33,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--journal-sui", help="Second Rust journal: SUI shadow in parallel with --journal")
     p.add_argument("--reconcile-local", help="Local ledger JSON (Rust snapshot)")
     p.add_argument("--reconcile-exchange", help="Exchange ledger JSON fixture (no API keys)")
+    p.add_argument("--ops-check", action="store_true", help="Tokyo health snapshot; no API")
+    p.add_argument("--crash-fuse", help="Crash fuse JSON path (inspect only)")
     args = p.parse_args(argv)
+
+    if args.ops_check:
+        print(
+            ops_line(
+                args.mode,
+                args.config_dir,
+                fuse_path=Path(args.crash_fuse) if args.crash_fuse else None,
+            )
+        )
+        return 0
 
     line, code = boot_line(args.mode, args.config_dir)
     print(line)
@@ -120,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.once:
         print(
-            '{"level":"info","event":"idle","note":"stage 7: OKX private decode, SOL+SUI shadow parallel. Resonance off. Live still gated."}'
+            '{"level":"info","event":"idle","note":"stage 8: Tokyo ops. SOL+SUI shadow parallel. Resonance off. Live still gated."}'
         )
     return 0
 

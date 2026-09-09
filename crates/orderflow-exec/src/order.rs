@@ -4,7 +4,7 @@ use orderflow_domain::{live_open_allowed, AppConfig, LiveDenied, Mode, Venue};
 use serde_json::{json, Value};
 
 use crate::intent::{IntentKind, OrderIntent};
-use crate::private::{cl_ord_id, Ack, PrivateEvent, parse_private_frame};
+use crate::private::{cl_ord_id, parse_private_frame, Ack, PrivateEvent};
 
 /// Private decode is on. Actual HTTP/WS write stays off.
 pub const LIVE_SEND_WIRED: bool = false;

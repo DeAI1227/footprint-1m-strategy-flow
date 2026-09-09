@@ -256,4 +256,26 @@ mod tests {
         let b2 = eng.push(&trade(120_000, 100.00, 0.01, TakerSide::Buy, "c2"));
         assert!((b2[0].footprint.min_volume - 8.0).abs() < 1e-9);
     }
+
+    #[test]
+    fn spec_rebuild_drops_forming_and_does_not_rewrite_closed() {
+        let mut eng = FootprintEngine::new(Venue::Okx, "SOL", FootprintConfig::golden_sol());
+        eng.push(&trade(1_000, 100.00, 8.0, TakerSide::Buy, "1"));
+        let closed = eng.push(&trade(60_000, 100.00, 0.01, TakerSide::Buy, "c1"));
+        assert_eq!(closed.len(), 1);
+        let closed_ask = closed[0].footprint.ask_vol;
+        eng.push(&trade(61_000, 100.02, 4.0, TakerSide::Buy, "2"));
+        assert!(eng.cutter().forming().is_some());
+        eng.rebuild_after_spec_change();
+        assert!(eng.cutter().forming().is_none());
+        // Late trade for the already-closed minute must not reopen it.
+        let late = eng.push(&trade(30_000, 100.00, 99.0, TakerSide::Buy, "late"));
+        assert!(late.is_empty());
+        assert_eq!(eng.cutter().quality().late_trade, 1);
+        // A new minute still closes independently of the dropped forming cells.
+        eng.push(&trade(121_000, 100.00, 1.0, TakerSide::Sell, "3"));
+        let b2 = eng.push(&trade(180_000, 100.00, 0.01, TakerSide::Buy, "c2"));
+        assert_eq!(b2[0].footprint.bid_vol, 1.0);
+        assert_ne!(b2[0].footprint.ask_vol, closed_ask + 99.0);
+    }
 }

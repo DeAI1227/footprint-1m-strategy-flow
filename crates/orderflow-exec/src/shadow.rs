@@ -3,7 +3,7 @@
 use orderflow_domain::{AppConfig, Mode};
 
 use crate::ledger::LedgerSnap;
-use crate::private::{parse_private_frame, PrivateEvent, symbol_from_inst};
+use crate::private::{parse_private_frame, symbol_from_inst, PrivateEvent};
 use crate::ExecGateway;
 
 pub struct ShadowPair {

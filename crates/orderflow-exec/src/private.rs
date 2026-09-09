@@ -210,7 +210,11 @@ pub fn parse_private_frame(text: &str) -> Result<Vec<PrivateEvent>, String> {
         .pointer("/arg/channel")
         .and_then(|x| x.as_str())
         .unwrap_or("");
-    let data = v.get("data").and_then(|d| d.as_array()).cloned().unwrap_or_default();
+    let data = v
+        .get("data")
+        .and_then(|d| d.as_array())
+        .cloned()
+        .unwrap_or_default();
     if data.is_empty() && matches!(op, "subscribe" | "login") {
         return Ok(vec![PrivateEvent::Control]);
     }
@@ -274,10 +278,7 @@ fn parse_fill(row: &Value) -> Option<Fill> {
     if qty <= 0.0 {
         return None;
     }
-    let exec = row
-        .get("execType")
-        .and_then(|x| x.as_str())
-        .unwrap_or("M");
+    let exec = row.get("execType").and_then(|x| x.as_str()).unwrap_or("M");
     Some(Fill {
         client_id: row
             .get("clOrdId")

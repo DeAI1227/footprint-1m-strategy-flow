@@ -39,6 +39,16 @@ entry_ttl_ms = 15000
 max_amend = 2
 max_slippage_ticks = 4
 
+[ops]
+# Tokyo run placeholders. Not live authorization. No secrets.
+crash_window_s = 120
+crash_burst = 5
+clear_crash_on_start = false
+log_max_bytes = 104857600
+log_keep = 7
+disk_min_free_bytes = 1073741824
+hot_journal_days = 3
+
 [venues.okx]
 role = "execution"
 public_ws = "wss://ws.okx.com:8443/ws/v5/public"

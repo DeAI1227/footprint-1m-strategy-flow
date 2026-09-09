@@ -71,6 +71,13 @@ impl FootprintEngine {
         self.cutter.mark_reconnect();
     }
 
+    /// Tick/lot change: rebuild this symbol's forming matrix only. Already
+    /// emitted closed bars are never rewritten.
+    pub fn rebuild_after_spec_change(&mut self) {
+        self.forming = None;
+        self.cutter.drop_forming();
+    }
+
     /// Push one normalized trade. Closed matrices are frozen; late trades do not rewrite them.
     pub fn push(&mut self, trade: &Trade) -> Vec<ClosedFootprint> {
         let late_before = self.cutter.quality().late_trade;

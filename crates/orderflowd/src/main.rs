@@ -13,6 +13,7 @@ use orderflow_exec::{run_private_replay, run_sim_fixture, submit_live_open};
 use orderflow_footprint::{FootprintConfig, FootprintEngine};
 use orderflow_ingest::journal::JsonlJournal;
 use orderflow_ingest::load_dump_sorted;
+use orderflow_ops::{run_spec_replay, CrashFuse, DiskWatermark, OpsCheck};
 
 struct Args {
     mode: Option<Mode>,
@@ -32,6 +33,9 @@ struct Args {
     sim_fixture: Option<PathBuf>,
     kill_switch: Option<PathBuf>,
     private_replay: Option<PathBuf>,
+    ops_check: bool,
+    spec_replay: Option<PathBuf>,
+    crash_fuse: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -51,6 +55,9 @@ fn parse_args() -> Result<Args, String> {
     let mut sim_fixture = None;
     let mut kill_switch = None;
     let mut private_replay = None;
+    let mut ops_check = false;
+    let mut spec_replay = None;
+    let mut crash_fuse = None;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -114,6 +121,15 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--private-replay needs a path")?;
                 private_replay = Some(v.into());
             }
+            "--ops-check" => ops_check = true,
+            "--spec-replay" => {
+                let v = it.next().ok_or("--spec-replay needs a path")?;
+                spec_replay = Some(v.into());
+            }
+            "--crash-fuse" => {
+                let v = it.next().ok_or("--crash-fuse needs a path")?;
+                crash_fuse = Some(v.into());
+            }
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
@@ -122,9 +138,11 @@ fn parse_args() -> Result<Args, String> {
                      \t[--journal out.jsonl] [--symbol SOL] [--max-trades N]\n\
                      \t[--book-replay PATH] [--regime-replay PATH]\n\
                      \t[--sim-fixture PATH] [--kill-switch PATH] [--private-replay PATH]\n\
+                     \t[--ops-check] [--spec-replay PATH] [--crash-fuse PATH]\n\
                      Resonance stays off (still recorded). Replay venue is not the execution venue.\n\
                      --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX.\n\
                      --sim-fixture matches on the OKX book only. --private-replay decodes OKX private frames.\n\
+                     --ops-check prints Tokyo health (no API). Tripped crash fuse exits 2 unless --ops-check.\n\
                      No API keys. Live still double-locked. Default mode is shadow."
                 );
                 return Err("help".into());
@@ -149,6 +167,9 @@ fn parse_args() -> Result<Args, String> {
         sim_fixture,
         kill_switch,
         private_replay,
+        ops_check,
+        spec_replay,
+        crash_fuse,
     })
 }
 
@@ -568,6 +589,50 @@ async fn main() -> ExitCode {
         }
     };
     let mode = args.mode.unwrap_or(cfg.runtime.mode_default);
+    let mut fuse = match args.crash_fuse.as_deref() {
+        Some(path) => match CrashFuse::load(path, &cfg.runtime.ops) {
+            Ok(mut f) => {
+                if let Err(e) = f.maybe_clear_on_start(&cfg.runtime.ops) {
+                    eprintln!(
+                        "{}",
+                        serde_json::json!({"level":"error","event":"crash_fuse_error","error":e})
+                    );
+                    return ExitCode::from(2);
+                }
+                Some(f)
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"level":"error","event":"crash_fuse_error","error":e})
+                );
+                return ExitCode::from(2);
+            }
+        },
+        None => None,
+    };
+
+    if args.ops_check {
+        let disk = DiskWatermark::new(&cfg.runtime.ops).check_path(&args.config_dir);
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as i64)
+            .unwrap_or(0);
+        let report = OpsCheck::report(&cfg, mode, fuse.as_ref(), disk, now_ms);
+        println!(
+            "{}",
+            serde_json::json!({
+                "level": "info",
+                "event": "ops_check",
+                "ops_wired": true,
+                "live_wired": false,
+                "copied_price_onto_okx": false,
+                "health": report,
+            })
+        );
+        return ExitCode::SUCCESS;
+    }
+
     let decision = boot_decision(mode, &cfg);
     let level = if decision.ok { "info" } else { "error" };
     println!("{}", json_log(level, &decision));
@@ -575,6 +640,38 @@ async fn main() -> ExitCode {
     if mode.is_live() {
         let _ = submit_live_open(mode, &cfg);
         return ExitCode::from(2);
+    }
+
+    if let Some(f) = &fuse {
+        if f.tripped() {
+            eprintln!(
+                "{}",
+                serde_json::json!({
+                    "level": "error",
+                    "event": "crash_fuse_tripped",
+                    "reason": "crash_burst",
+                    "note": "stop; do not loop-hit API. --ops-check to inspect. live still gated.",
+                })
+            );
+            return ExitCode::from(2);
+        }
+    }
+    let _ = fuse.take();
+
+    if let Some(path) = &args.spec_replay {
+        match run_spec_replay(path, &cfg) {
+            Ok(v) => {
+                println!("{v}");
+                return ExitCode::SUCCESS;
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"level":"error","event":"spec_replay_error","error":e})
+                );
+                return ExitCode::from(2);
+            }
+        }
     }
 
     if let Some(path) = &args.sim_fixture {
@@ -626,7 +723,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 7: OKX private decode, shadow default. --private-replay PATH. Live double-locked.",
+                "note": "stage 8: Tokyo ops, crash fuse, tick rebuild. Shadow default. Live double-locked.",
             })
         );
     }

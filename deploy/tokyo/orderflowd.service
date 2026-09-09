@@ -1,0 +1,20 @@
+# Tokyo shadow runner. No exchange credentials in this unit.
+# Region is conceptual ap-northeast-1. Crash burst matches params/runtime.toml [ops].
+
+[Unit]
+Description=orderflowd shadow (Tokyo)
+Documentation=file:///opt/orderflow/deploy/tokyo/notes.md
+StartLimitBurst=5
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=2
+WorkingDirectory=/opt/orderflow
+ExecStart=/usr/local/bin/orderflowd --mode shadow --crash-fuse /var/lib/orderflow/crash.json
+# Do not put exchange credentials in Environment= lines.
+# Operator vault stays off-repo.
+
+[Install]
+WantedBy=multi-user.target
