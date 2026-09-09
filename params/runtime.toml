@@ -29,6 +29,16 @@ equity = 10000.0
 kill_switch_clear_on_start = false
 reconcile_every_s = 30
 
+[exec]
+# Double lock: live_send stays false. Calibration gate is the other lock.
+# No API keys in this file.
+td_mode = "cross"
+pos_mode = "net_mode"
+live_send = false
+entry_ttl_ms = 15000
+max_amend = 2
+max_slippage_ticks = 4
+
 [venues.okx]
 role = "execution"
 public_ws = "wss://ws.okx.com:8443/ws/v5/public"

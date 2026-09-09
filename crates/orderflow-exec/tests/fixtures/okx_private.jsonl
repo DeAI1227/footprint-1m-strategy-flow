@@ -1,0 +1,6 @@
+{"arg":{"channel":"orders","instType":"SWAP"},"data":[{"instId":"SOL-USDT-SWAP","clOrdId":"ofsolA00000001","ordId":"11","side":"buy","px":"100.00","sz":"2","accFillSz":"0","state":"live"}]}
+{"arg":{"channel":"fills","instType":"SWAP"},"data":[{"instId":"SOL-USDT-SWAP","clOrdId":"ofsolA00000001","fillPx":"100.00","fillSz":"2","side":"buy","execType":"M","ts":"1"}]}
+{"arg":{"channel":"fills","instType":"SWAP"},"data":[{"instId":"SUI-USDT-SWAP","clOrdId":"ofsuiA00000001","fillPx":"1.2345","fillSz":"1","side":"buy","execType":"M","ts":"2"}]}
+{"arg":{"channel":"positions","instType":"SWAP"},"data":[{"instId":"SOL-USDT-SWAP","pos":"2","avgPx":"100.00","markPx":"100.10","liqPx":"80"}]}
+{"op":"order","id":"req1","code":"0","data":[{"clOrdId":"ofsolA00000001","ordId":"11","sCode":"0","sMsg":""}]}
+{"venue":"binance","stream":"binance.user","data":[]}

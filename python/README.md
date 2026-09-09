@@ -7,6 +7,7 @@ PYTHONPATH=python python3 -m orderflow --mode shadow --once
 PYTHONPATH=python python3 -m orderflow --mode live --once   # 退出碼 2
 PYTHONPATH=python python3 -m orderflow --mode shadow --once --journal /tmp/sol_ctx.jsonl
 PYTHONPATH=python python3 -m orderflow --mode sim --once --reconcile-local /tmp/local.json --reconcile-exchange /tmp/exchange.json
+PYTHONPATH=python python3 -m orderflow --mode shadow --once --journal /tmp/sol.jsonl --journal-sui /tmp/sui.jsonl
 ```
 
 禁止在這裡解析行情 WebSocket，禁止用 pandas 組第二套生產足跡矩陣。共振預設 `off`，不把外所價抄到 OKX。G 與未完成拍賣不是進場。

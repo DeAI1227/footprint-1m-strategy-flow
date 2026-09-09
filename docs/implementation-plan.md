@@ -26,6 +26,9 @@ todos:
   - id: risk-sim-exec
     content: Rust 執行/風控熱路徑 + Python 對帳編排；模擬撮合、kill switch
     status: completed
+  - id: exec-gateway
+    content: OKX 私有流解碼與下單編碼；live 雙鎖；SUI 影子並行
+    status: completed
   - id: tokyo-ops
     content: 監督運行、漏棒、規格變更、SUI 影子並行、三所 WS 互不阻塞
     status: pending
@@ -151,8 +154,8 @@ bucket、斜對角、堆疊、混亂棒、excess、未完成、delta/CVD。用�
 **階段 6 — 模擬撮合 + 風控 + 對帳（已完成）**  
 本地用 OKX 盤口假成交（排隊 + 部分成交）；kill switch 持久化、日虧、距強平緩衝、降載順序（研究 → 低權重 → 開倉 → 最後才動平倉/風控）。Python 對帳編排比對 fixture（交易所為真）。無 API 金鑰也能跑完。live 仍拒絕。OKX 私有流是階段 7。
 
-**階段 7 — 執行網關（仍默認 shadow）**  
-接私有流，但 live 開關與參數校準閘門雙鎖。SUI 影子並行，參數檔獨立。
+**階段 7 — 執行網關（已完成，仍默認 shadow）**  
+接 OKX 私有流解碼（orders / fills / positions / account）與下單編碼、ACK 分類。live 開關與參數校準閘門雙鎖，`live_send = false`，本 crate 不下 HTTP。SUI 影子並行，參數檔獨立。Binance/Bybit 私有不開。live 仍拒絕。
 
 **階段 8 — 東京運行面**  
 監督重啟、崩潰熔斷（避免死循環打 API）、日誌輪轉、規格變更（tick size）觸發重建矩陣與撤單、資金費黑窗佔位。
