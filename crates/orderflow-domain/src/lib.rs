@@ -283,6 +283,9 @@ pub struct QualityVector {
     pub binance_book_ok: bool,
     pub bybit_book_ok: bool,
     pub liq_stream_missing: bool,
+    /// Private WS seen and healthy. Shadow/sim do not require this to boot.
+    #[serde(default)]
+    pub private_ok: bool,
 }
 
 impl QualityVector {
@@ -358,6 +361,40 @@ pub struct RuntimeConfig {
     pub calibration: CalibrationGate,
     pub venues: VenuesConfig,
     pub risk: RiskPlaceholder,
+    #[serde(default)]
+    pub exec: ExecConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecConfig {
+    /// OKX margin mode. Observation placeholder.
+    #[serde(default = "default_td_mode")]
+    pub td_mode: String,
+    /// Expected OKX posMode. Mismatch blocks new opens.
+    #[serde(default = "default_pos_mode")]
+    pub pos_mode: String,
+    /// Third lock: even if calibration + live flags flip, this stays false in repo.
+    #[serde(default)]
+    pub live_send: bool,
+    #[serde(default = "default_entry_ttl_ms")]
+    pub entry_ttl_ms: u64,
+    #[serde(default = "default_max_amend")]
+    pub max_amend: u32,
+    #[serde(default = "default_max_slippage_ticks")]
+    pub max_slippage_ticks: u32,
+}
+
+impl Default for ExecConfig {
+    fn default() -> Self {
+        Self {
+            td_mode: default_td_mode(),
+            pos_mode: default_pos_mode(),
+            live_send: false,
+            entry_ttl_ms: default_entry_ttl_ms(),
+            max_amend: default_max_amend(),
+            max_slippage_ticks: default_max_slippage_ticks(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -496,6 +533,26 @@ fn default_equity() -> f64 {
 
 fn default_reconcile_every_s() -> u32 {
     30
+}
+
+fn default_td_mode() -> String {
+    "cross".into()
+}
+
+fn default_pos_mode() -> String {
+    "net_mode".into()
+}
+
+fn default_entry_ttl_ms() -> u64 {
+    15_000
+}
+
+fn default_max_amend() -> u32 {
+    2
+}
+
+fn default_max_slippage_ticks() -> u32 {
+    4
 }
 
 impl SymbolParams {
@@ -784,6 +841,9 @@ mod tests {
         assert!(!cfg.runtime.risk.shared_beta_cap_enabled);
         assert!((cfg.runtime.risk.risk_pct - 0.002).abs() < 1e-12);
         assert!(!cfg.runtime.risk.kill_switch_clear_on_start);
+        assert!(!cfg.runtime.exec.live_send);
+        assert_eq!(cfg.runtime.mode_default, Mode::Shadow);
+        assert_eq!(cfg.runtime.exec.pos_mode, "net_mode");
     }
 
     #[test]

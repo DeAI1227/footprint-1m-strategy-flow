@@ -25,7 +25,7 @@ book-replay:
 
 test:
 	cargo test --workspace --exclude orderflow-py
-	PYTHONPATH=python python3 -m unittest tests.test_live_gate tests.test_scripts_stage5 tests.test_reconcile_stage6
+	PYTHONPATH=python python3 -m unittest tests.test_live_gate tests.test_scripts_stage5 tests.test_reconcile_stage6 tests.test_gateway_stage7
 
 fmt:
 	cargo fmt --all

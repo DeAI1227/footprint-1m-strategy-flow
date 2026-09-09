@@ -9,7 +9,7 @@ use orderflow_context::{
 use orderflow_domain::{
     boot_decision, default_config_dir, json_log, AppConfig, Mode, Venue, VenueRole,
 };
-use orderflow_exec::{run_sim_fixture, submit_live_open};
+use orderflow_exec::{run_private_replay, run_sim_fixture, submit_live_open};
 use orderflow_footprint::{FootprintConfig, FootprintEngine};
 use orderflow_ingest::journal::JsonlJournal;
 use orderflow_ingest::load_dump_sorted;
@@ -31,6 +31,7 @@ struct Args {
     regime_replay: Option<PathBuf>,
     sim_fixture: Option<PathBuf>,
     kill_switch: Option<PathBuf>,
+    private_replay: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -49,6 +50,7 @@ fn parse_args() -> Result<Args, String> {
     let mut regime_replay = None;
     let mut sim_fixture = None;
     let mut kill_switch = None;
+    let mut private_replay = None;
     let mut it = env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -108,6 +110,10 @@ fn parse_args() -> Result<Args, String> {
                 let v = it.next().ok_or("--kill-switch needs a path")?;
                 kill_switch = Some(v.into());
             }
+            "--private-replay" => {
+                let v = it.next().ok_or("--private-replay needs a path")?;
+                private_replay = Some(v.into());
+            }
             "-h" | "--help" => {
                 eprintln!(
                     "orderflowd --mode shadow|sim|live_small|live [--config-dir params] [--once]\n\
@@ -115,10 +121,11 @@ fn parse_args() -> Result<Args, String> {
                      \t[--replay-okx PATH] [--replay-binance PATH] [--replay-bybit PATH]\n\
                      \t[--journal out.jsonl] [--symbol SOL] [--max-trades N]\n\
                      \t[--book-replay PATH] [--regime-replay PATH]\n\
-                     \t[--sim-fixture PATH] [--kill-switch PATH]\n\
+                     \t[--sim-fixture PATH] [--kill-switch PATH] [--private-replay PATH]\n\
                      Resonance stays off (still recorded). Replay venue is not the execution venue.\n\
                      --book-replay applies to --venue (default okx). Toxic books never copy prices onto OKX.\n\
-                     --sim-fixture matches on the OKX book only. No API keys. Live still gated."
+                     --sim-fixture matches on the OKX book only. --private-replay decodes OKX private frames.\n\
+                     No API keys. Live still double-locked. Default mode is shadow."
                 );
                 return Err("help".into());
             }
@@ -141,6 +148,7 @@ fn parse_args() -> Result<Args, String> {
         regime_replay,
         sim_fixture,
         kill_switch,
+        private_replay,
     })
 }
 
@@ -585,6 +593,22 @@ async fn main() -> ExitCode {
         }
     }
 
+    if let Some(path) = &args.private_replay {
+        match run_private_replay(path, &cfg) {
+            Ok(v) => {
+                println!("{v}");
+                return ExitCode::SUCCESS;
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}",
+                    serde_json::json!({"level":"error","event":"private_replay_error","error":e})
+                );
+                return ExitCode::from(2);
+            }
+        }
+    }
+
     if !collect_replay_jobs(&args).is_empty() || args.book_replay.is_some() {
         if let Err(e) = run_replays(&args, &cfg) {
             eprintln!(
@@ -602,7 +626,7 @@ async fn main() -> ExitCode {
             serde_json::json!({
                 "level": "info",
                 "event": "idle",
-                "note": "stage 6: sim matching + risk. Use --sim-fixture PATH. --replay still works. Resonance off. Live still gated.",
+                "note": "stage 7: OKX private decode, shadow default. --private-replay PATH. Live double-locked.",
             })
         );
     }

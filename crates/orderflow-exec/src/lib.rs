@@ -1,16 +1,28 @@
-//! Stage 6: local sim matching + risk. OKX private I/O is still stage 7.
-//! Live opens stay impossible even if someone flips toml flags.
+//! Stage 7: OKX private decode + order encode. Live send stays double-locked.
+//! Default mode is shadow. SUI shadow runs on its own param table.
 
 mod intent;
 mod ledger;
+mod order;
+mod private;
 mod rest;
 mod risk;
+mod shadow;
 mod sim;
 
 pub use intent::{IntentKind, OrderIntent, Side, Universe};
 pub use ledger::{Ledger, LedgerSnap, Position};
+pub use order::{
+    dispatch_live, encode_cancel, encode_place, format_px, inst_id_for, live_send_allowed,
+    parse_ack_text, signal_stale, tick_for, LIVE_SEND_WIRED,
+};
+pub use private::{
+    cl_ord_id, parse_private_frame, private_subscribe_okx, Ack, OrderState, PrivateEvent,
+    PrivateOrder, RejectClass,
+};
 pub use rest::{RestOp, RestPriority, RestQueue};
 pub use risk::{Degrade, KillAction, KillState, RiskEngine};
+pub use shadow::ShadowPair;
 pub use sim::{match_trade, taker_fill, BookLevel, Fill, SimBook, WorkingOrder};
 
 use std::collections::BTreeMap;
@@ -21,9 +33,10 @@ use orderflow_domain::{
     live_open_allowed, AppConfig, LiveDenied, Mode, TakerSide, Trade, Venue,
 };
 
-/// Live path is not wired. Sim matching is.
+/// Live HTTP write is not wired. Private decode and sim matching are.
 pub const WIRED: bool = false;
 pub const SIM_WIRED: bool = true;
+pub const PRIVATE_WIRED: bool = true;
 pub const LIVE_WIRED: bool = false;
 
 pub fn submit_live_open(mode: Mode, cfg: &AppConfig) -> Result<(), LiveDenied> {
@@ -46,6 +59,8 @@ pub struct ExecGateway {
     pub book: Option<SimBook>,
     pub marks: BTreeMap<String, f64>,
     pub rest: RestQueue,
+    pub private_ok: bool,
+    pub account_mismatch: bool,
     seq_clock: i64,
 }
 
@@ -58,6 +73,8 @@ impl ExecGateway {
             book: None,
             marks: BTreeMap::new(),
             rest: RestQueue::default(),
+            private_ok: false,
+            account_mismatch: false,
             seq_clock: 1,
         }
     }
@@ -159,6 +176,14 @@ impl ExecGateway {
     }
 
     fn submit_open(&mut self, intent: &mut OrderIntent, cfg: &AppConfig) -> SubmitResult {
+        if self.account_mismatch {
+            return SubmitResult {
+                accepted: false,
+                reason: "account_mode_mismatch",
+                client_id: None,
+                qty: 0.0,
+            };
+        }
         if let Err(r) = self.risk.allow_open(intent, self.unrealized()) {
             return SubmitResult {
                 accepted: false,
@@ -461,6 +486,50 @@ pub fn run_sim_fixture(
     }))
 }
 
+/// Replay OKX private JSONL onto SOL+SUI shadow ledgers. Never sends live.
+pub fn run_private_replay(path: &Path, cfg: &AppConfig) -> Result<serde_json::Value, String> {
+    let raw = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut pair = ShadowPair::new(cfg);
+    let mut n = 0u32;
+    let mut refused = 0u32;
+    for (i, line) in raw.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        match parse_private_frame(line) {
+            Ok(evs) => {
+                for ev in &evs {
+                    if matches!(ev, PrivateEvent::Refused(_)) {
+                        refused += 1;
+                    }
+                }
+                pair.apply_private(line, cfg)
+                    .map_err(|e| format!("{}:{}: {e}", path.display(), i + 1))?;
+                n += 1;
+            }
+            Err(e) => return Err(format!("{}:{}: {e}", path.display(), i + 1)),
+        }
+    }
+    let (sol, sui) = pair.snap();
+    Ok(serde_json::json!({
+        "event": "private_replay_done",
+        "private_wired": true,
+        "live_wired": false,
+        "live_send": cfg.runtime.exec.live_send,
+        "copied_price_onto_okx": false,
+        "frames": n,
+        "refused": refused,
+        "private_ok": pair.private_ok,
+        "account_mismatch": pair.account_mismatch,
+        "sol_fills": sol.fill_n,
+        "sui_fills": sui.fill_n,
+        "sol_qty": sol.positions.iter().map(|p| p.qty).sum::<f64>(),
+        "sui_qty": sui.positions.iter().map(|p| p.qty).sum::<f64>(),
+        "note": "stage 7: OKX private decode; shadow default; live double-locked; no API keys",
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,6 +572,10 @@ mod tests {
         assert!(!WIRED);
         assert!(!LIVE_WIRED);
         assert!(SIM_WIRED);
+        assert!(PRIVATE_WIRED);
+        assert!(!LIVE_SEND_WIRED);
+        assert!(!cfg.runtime.exec.live_send);
+        assert_eq!(cfg.runtime.mode_default, Mode::Shadow);
     }
 
     #[test]
@@ -681,5 +754,147 @@ mod tests {
         assert_eq!(gw.submit(a, &cfg).reason, "accepted");
         assert_eq!(gw.submit(b, &cfg).reason, "idempotent");
         assert_eq!(gw.ledger.working.len(), 1);
+    }
+
+    #[test]
+    fn private_orders_and_fills_update_sol_not_sui() {
+        let cfg = cfg();
+        let mut pair = ShadowPair::new(&cfg);
+        let orders = r#"{"arg":{"channel":"orders","instType":"SWAP"},"data":[{"instId":"SOL-USDT-SWAP","clOrdId":"ofsolA00000001","ordId":"1","side":"buy","px":"100.00","sz":"2","accFillSz":"0","state":"live"}]}"#;
+        pair.apply_private(orders, &cfg).unwrap();
+        let fills = r#"{"arg":{"channel":"fills","instType":"SWAP"},"data":[{"instId":"SOL-USDT-SWAP","clOrdId":"ofsolA00000001","fillPx":"100.00","fillSz":"2","side":"buy","execType":"M"}]}"#;
+        pair.apply_private(fills, &cfg).unwrap();
+        let (sol, sui) = pair.snap();
+        assert_eq!(sol.fill_n, 1);
+        assert!((sol.positions[0].qty - 2.0).abs() < 1e-9);
+        assert!(sui.positions.is_empty());
+        assert!(pair.private_ok);
+    }
+
+    #[test]
+    fn sui_fill_uses_native_inst_not_sol_tick() {
+        let cfg = cfg();
+        assert_eq!(tick_for("SUI", &cfg), 0.0001);
+        assert_eq!(tick_for("SOL", &cfg), 0.01);
+        assert_eq!(inst_id_for("SUI", &cfg), "SUI-USDT-SWAP");
+        let mut pair = ShadowPair::new(&cfg);
+        let fills = r#"{"arg":{"channel":"fills","instType":"SWAP"},"data":[{"instId":"SUI-USDT-SWAP","clOrdId":"ofsuiA00000001","fillPx":"1.2345","fillSz":"3","side":"buy","execType":"M"}]}"#;
+        pair.apply_private(fills, &cfg).unwrap();
+        let (sol, sui) = pair.snap();
+        assert!(sol.positions.is_empty());
+        assert!((sui.positions[0].qty - 3.0).abs() < 1e-9);
+        let intent = OrderIntent::sim_open("SUI", Side::Buy, 1.2345, 1.0);
+        let payload = encode_place(&intent, &cfg, 1).unwrap();
+        let px = payload["args"][0]["px"].as_str().unwrap();
+        assert!(px.starts_with("1.234"), "{px}");
+        assert_eq!(payload["args"][0]["instId"], "SUI-USDT-SWAP");
+        assert_eq!(payload["copied_price_onto_okx"], false);
+    }
+
+    #[test]
+    fn cl_ord_id_is_okx_safe() {
+        let id = cl_ord_id("SOL", "A", 12);
+        assert!(id.len() <= 32);
+        assert!(id.chars().all(|c| c.is_ascii_alphanumeric()));
+        assert!(id.starts_with("ofsol"));
+        let sui = cl_ord_id("SUI", "C", 3);
+        assert!(sui.starts_with("ofsui"));
+        assert_ne!(id, sui);
+    }
+
+    #[test]
+    fn ack_precision_and_ok() {
+        let ok = parse_ack_text(r#"{"op":"order","id":"req1","code":"0","data":[{"clOrdId":"ofsolA00000001","ordId":"9","sCode":"0","sMsg":""}]}"#).unwrap();
+        assert!(ok.ok);
+        assert_eq!(ok.class, RejectClass::Ok);
+        let bad = parse_ack_text(r#"{"op":"order","id":"req1","code":"1","data":[{"clOrdId":"ofsolA00000001","sCode":"51000","sMsg":"Tick size precision error"}]}"#).unwrap();
+        assert!(!bad.ok);
+        assert_eq!(bad.class, RejectClass::Precision);
+    }
+
+    #[test]
+    fn binance_private_is_refused() {
+        let evs = parse_private_frame(r#"{"venue":"binance","stream":"binance.user","data":[]}"#).unwrap();
+        assert!(matches!(evs[0], PrivateEvent::Refused("not_okx_private")));
+    }
+
+    #[test]
+    fn copied_price_cannot_encode() {
+        let cfg = cfg();
+        let mut intent = OrderIntent::sim_open("SOL", Side::Buy, 100.0, 1.0);
+        intent.copied_price_onto_okx = true;
+        assert_eq!(encode_place(&intent, &cfg, 1).unwrap_err(), "copied_price_onto_okx");
+    }
+
+    #[test]
+    fn dispatch_live_never_sends_even_if_flags_flip() {
+        let mut cfg = cfg();
+        cfg.runtime.calibration.status = orderflow_domain::CalibrationStatus::OutOfSampleValidated;
+        cfg.runtime.calibration.out_of_sample_validated = true;
+        cfg.runtime.calibration.calibration_complete = true;
+        cfg.runtime.calibration.live_authorized = true;
+        cfg.runtime.exec.live_send = true;
+        cfg.sol.live_enabled = true;
+        cfg.sol.calibration_complete = true;
+        cfg.sol.out_of_sample_validated = true;
+        cfg.sol.armed_rate_policy = orderflow_domain::ArmedRatePolicy::Dale300;
+        let payload = serde_json::json!({"op":"order"});
+        assert_eq!(
+            dispatch_live(Mode::Live, &cfg, &payload).unwrap_err(),
+            LiveDenied::ExecNotWired
+        );
+        assert_eq!(
+            live_send_allowed(Mode::Live, &cfg).unwrap_err(),
+            LiveDenied::ExecNotWired
+        );
+    }
+
+    #[test]
+    fn account_mode_mismatch_blocks_opens() {
+        let cfg = cfg();
+        let mut pair = ShadowPair::new(&cfg);
+        pair.apply_private(
+            r#"{"arg":{"channel":"account"},"data":[{"posMode":"long_short_mode"}]}"#,
+            &cfg,
+        )
+        .unwrap();
+        assert!(pair.account_mismatch);
+        let mut gw = ExecGateway::new(Mode::Sim, &cfg);
+        gw.account_mismatch = true;
+        let r = gw.submit(OrderIntent::sim_open("SOL", Side::Buy, 100.0, 1.0), &cfg);
+        assert_eq!(r.reason, "account_mode_mismatch");
+    }
+
+    #[test]
+    fn signal_stale_uses_okx_book_not_peer() {
+        let cfg = cfg();
+        assert!(signal_stale(100.0, 100.10, 100.12, cfg.sol.tick_sz, 4));
+        assert!(!signal_stale(100.0, 100.01, 100.02, cfg.sol.tick_sz, 4));
+        assert!(!signal_stale(1.2345, 1.2344, 1.2346, cfg.sui.tick_sz, 4));
+    }
+
+    #[test]
+    fn private_fixture_replay_no_keys() {
+        let cfg = cfg();
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/okx_private.jsonl");
+        let out = run_private_replay(&path, &cfg).unwrap();
+        assert_eq!(out["private_wired"], true);
+        assert_eq!(out["live_wired"], false);
+        assert_eq!(out["live_send"], false);
+        assert!(out["sol_fills"].as_u64().unwrap() >= 1);
+        assert!(out["sui_fills"].as_u64().unwrap() >= 1);
+        let line = out.to_string().to_ascii_lowercase();
+        assert!(!line.contains("secret"));
+        assert!(!line.contains("apikey"));
+        assert!(!line.contains("passphrase"));
+    }
+
+    #[test]
+    fn subscribe_payload_is_okx_only() {
+        let s = private_subscribe_okx();
+        assert!(s.contains("orders"));
+        assert!(!s.to_ascii_lowercase().contains("binance"));
+        assert!(!s.to_ascii_lowercase().contains("bybit"));
     }
 }
