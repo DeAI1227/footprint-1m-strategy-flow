@@ -15,7 +15,9 @@ bucket = 0.0001
 # Same rule language as SOL; numbers stay on this table.
 min_imbalance_volume_rule = "session_nonempty_side_p25_both"
 # p25 snapshots as comments only (SUI, not frozen constants):
-# asia≈319 / eu≈277 / us≈228 / thin≈198 SUI
+# observation week-3: asia≈319 / eu≈277 / us≈228 / thin≈198 SUI
+# OOS 2026-09-07→09-09: asia≈404 / eu≈563 / us≈388 / thin≈248 SUI
+# percentile is the rule; do not freeze lots; do not copy SOL
 
 imbalance_style = "diagonal"
 imbalance_rate_record = 2.0
