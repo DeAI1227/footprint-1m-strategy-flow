@@ -106,6 +106,38 @@ class TestOosScreens(unittest.TestCase):
         f = screen_f(bars)["all"]
         self.assertEqual(f["not_evaluated"], 1)
         self.assertEqual(f["reason"], "no_l2")
+        self.assertEqual(f["eat_through"], 0)
+
+    def test_f_counts_frozen_reads_and_does_not_invent_walls(self):
+        a = _bar(0, high=1, low=0, close=1)
+        a.book = {"book_ok": True, "read": "eat_through", "wall_side": "ask"}
+        b = _bar(1, high=1, low=0, close=1)
+        b.book = {"book_ok": True, "read": "yield", "wall_side": "bid"}
+        c = _bar(2, high=1, low=0, close=1)
+        c.book = {"book_ok": True, "read": "yielding", "wall_side": "bid"}
+        d = _bar(3, high=1, low=0, close=1)
+        f = screen_f([a, b, c, d])["all"]
+        self.assertEqual(f["evaluated"], 3)
+        self.assertEqual(f["not_evaluated"], 1)
+        self.assertEqual(f["eat_through"], 1)
+        self.assertEqual(f["yield"], 2)
+        self.assertEqual(f["reason"], "ok")
+        self.assertEqual(f["located"], 0)
+        out = run_screens([a, b, c, d])
+        self.assertEqual(out["script_f"], "computed")
+        self.assertIsNone(out["chosen_armed_rate"])
+        self.assertFalse(out["out_of_sample_validated"])
+
+        loc = _bar(4, high=1, low=0, close=1)
+        loc.book = {
+            "book_ok": True,
+            "read": "absorb",
+            "wall_on_poc": True,
+            "wall_on_stack": True,
+        }
+        fl = screen_f([loc])["all"]
+        self.assertEqual(fl["located"], 1)
+        self.assertEqual(fl["located_absorb"], 1)
 
     def test_unfinished_entry_flag_is_rejected(self):
         bar = _bar(0, high=1, low=0, close=1)
