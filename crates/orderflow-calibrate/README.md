@@ -9,5 +9,7 @@ cargo run -p orderflowd -- --calibrate-journal crates/orderflow-calibrate/tests/
 # 時段拆表（仍不選 300 vs 400）
 python3 scripts/oos_shadow_from_journal.py /tmp/sol_oos_journal.jsonl
 python3 scripts/oos_scripts_from_journal.py /tmp/sol_oos_journal.jsonl
+# 任選一日（例：2026-09-07 00:00 → 09-08 00:00 UTC）
+python3 scripts/fetch_okx_oos_windows.py --out-dir /tmp/sol_oos_day --end-ts-ms 1788825600000 --until-ts-ms 1788739200000
 cargo run -p orderflowd -- --promote-live   # 必須失敗
 ```
