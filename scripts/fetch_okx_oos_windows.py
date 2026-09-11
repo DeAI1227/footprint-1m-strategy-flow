@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Fetch OKX public SOL-USDT-SWAP trades for SOL out-of-sample shadow.
+"""Fetch OKX public SWAP trades for out-of-sample shadow (SOL or SUI).
 
 Writes newest-first JSONL under /tmp. Stay off git. Public REST only; no keys.
 Windows are jumped by tradeId then paginated older (same as observation dumps).
+
+Pass --inst SUI-USDT-SWAP and a lower --id-per-hour (SUI ~16–22k/h; do not
+copy SOL's 40k guess). Do not copy SOL 0.01 onto SUI.
 """
 from __future__ import annotations
 
@@ -18,15 +21,14 @@ from pathlib import Path
 
 URL = "https://www.okx.com/api/v5/market/history-trades"
 UA = {"User-Agent": "footprint-1m-calibration/0.1"}
-INST = "SOL-USDT-SWAP"
 
 
 def iso(ts_ms: int) -> str:
     return datetime.fromtimestamp(ts_ms / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-def fetch_page(after_id: str | None = None, limit: int = 100) -> list[dict]:
-    q: dict[str, str] = {"instId": INST, "limit": str(limit)}
+def fetch_page(inst: str, after_id: str | None = None, limit: int = 100) -> list[dict]:
+    q: dict[str, str] = {"instId": inst, "limit": str(limit)}
     if after_id is not None:
         q["after"] = str(after_id)
     req = urllib.request.Request(f"{URL}?{urllib.parse.urlencode(q)}", headers=UA)
@@ -37,25 +39,24 @@ def fetch_page(after_id: str | None = None, limit: int = 100) -> list[dict]:
     return body.get("data") or []
 
 
-def newest_trade() -> dict:
-    rows = fetch_page()
+def newest_trade(inst: str) -> dict:
+    rows = fetch_page(inst)
     if not rows:
         raise RuntimeError("no trades")
     return rows[0]
 
 
-def trade_near(target_ts_ms: int, newest_id: int, newest_ts: int) -> dict:
+def trade_near(inst: str, target_ts_ms: int, newest_id: int, newest_ts: int, id_per_hour: int) -> dict:
     """Find a trade at or slightly newer than target_ts_ms via tradeId jumps."""
     hours = max((newest_ts - target_ts_ms) / 3_600_000, 0.1)
-    # Observation-era SOL was ~35–50k trades/hour; start from that guess.
-    guess = newest_id - int(hours * 40_000)
+    guess = newest_id - int(hours * id_per_hour)
     lo = max(1, newest_id - 4_000_000)
     hi = newest_id + 1
     mid = max(lo + 1, min(hi - 1, guess))
     best = None
     for _ in range(24):
         try:
-            rows = fetch_page(after_id=str(mid))
+            rows = fetch_page(inst, after_id=str(mid))
         except Exception:
             time.sleep(0.4)
             continue
@@ -80,7 +81,7 @@ def trade_near(target_ts_ms: int, newest_id: int, newest_ts: int) -> dict:
     after = str(int(best["tradeId"]) + 1)
     for _ in range(40):
         try:
-            rows = fetch_page(after_id=after)
+            rows = fetch_page(inst, after_id=after)
         except Exception:
             break
         if not rows:
@@ -149,13 +150,20 @@ def main() -> int:
         help="Oldest timestamp to keep",
     )
     ap.add_argument("--max-pages", type=int, default=8000)
+    ap.add_argument("--inst", default="SOL-USDT-SWAP")
+    ap.add_argument(
+        "--id-per-hour",
+        type=int,
+        default=40_000,
+        help="tradeId jump guess (SOL ~40k/h; SUI often lower)",
+    )
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    newest = newest_trade()
+    newest = newest_trade(args.inst)
     nid, nts = int(newest["tradeId"]), int(newest["ts"])
-    print(f"newest id={nid} {iso(nts)} px={newest['px']}", flush=True)
+    print(f"newest inst={args.inst} id={nid} {iso(nts)} px={newest['px']}", flush=True)
 
     end_ts = args.end_ts_ms if args.end_ts_ms > 0 else nts + 1
     bounds = session_windows(end_ts, args.until_ts_ms)
@@ -169,7 +177,7 @@ def main() -> int:
         if newer_ts <= until_ts:
             print(f"skip {name}: empty window", flush=True)
             continue
-        near = trade_near(newer_ts, nid, nts)
+        near = trade_near(args.inst, newer_ts, nid, nts, args.id_per_hour)
         after_id = str(int(near["tradeId"]) + 1)
         path = out_dir / f"{name}.jsonl"
         cmd = [
@@ -183,6 +191,8 @@ def main() -> int:
             str(until_ts),
             "--max-pages",
             str(args.max_pages),
+            "--inst",
+            args.inst,
         ]
         print("spawn", " ".join(cmd), flush=True)
         log = (out_dir / f"{name}.log").open("w")
