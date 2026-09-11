@@ -6,5 +6,7 @@
 cargo test -p orderflow-calibrate
 cargo run -p orderflowd -- --calibrate-check
 cargo run -p orderflowd -- --calibrate-journal crates/orderflow-calibrate/tests/fixtures/shadow_stats.jsonl
+# 時段拆表（仍不選 300 vs 400）
+python3 scripts/oos_shadow_from_journal.py /tmp/sol_oos_journal.jsonl
 cargo run -p orderflowd -- --promote-live   # 必須失敗
 ```
