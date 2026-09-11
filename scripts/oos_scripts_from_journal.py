@@ -101,7 +101,15 @@ def main() -> int:
         f"first_dn={e['first_dn']} later_dn={e['later_dn']}"
     )
     print("===== F =====")
-    print(f"not_evaluated={out['F']['all']['not_evaluated']} reason=no_l2")
+    f = out["F"]["all"]
+    ev = int(f.get("evaluated") or 0)
+    print(
+        f"evaluated={ev} not_evaluated={f['not_evaluated']} reason={f.get('reason')} "
+        f"eat_through={f.get('eat_through', 0)} yield={f.get('yield', 0)} "
+        f"absorb={f.get('absorb', 0)} fake_wall={f.get('fake_wall', 0)} "
+        f"no_wall={f.get('no_wall', 0)}"
+    )
+    print("# F is not an entry confirmation; yield is a veto; no volume-stack walls")
     print()
     print(json.dumps(out, ensure_ascii=False, indent=2, default=str))
     return 0

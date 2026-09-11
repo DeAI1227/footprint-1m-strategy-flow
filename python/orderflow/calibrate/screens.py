@@ -323,14 +323,42 @@ def screen_e(bars: list[FrozenBar]) -> dict[str, Any]:
 
 
 def screen_f(bars: list[FrozenBar]) -> dict[str, Any]:
+    """Count frozen book reads. Never invent a wall from footprint volume."""
     n = len(bars)
-    evaluated = sum(1 for b in bars if b.book and b.book.get("book_ok"))
+    reads = {
+        "eat_through": 0,
+        "yield": 0,
+        "absorb": 0,
+        "fake_wall": 0,
+        "no_wall": 0,
+    }
+    evaluated = 0
+    book_present = 0
+    for b in bars:
+        book = b.book
+        if not book:
+            continue
+        book_present += 1
+        if not book.get("book_ok"):
+            continue
+        evaluated += 1
+        raw = str(book.get("read") or "not_evaluated")
+        if raw == "yielding":
+            raw = "yield"
+        if raw in reads:
+            reads[raw] += 1
+        elif raw in {"not_evaluated", ""}:
+            reads["no_wall"] += 1
+        else:
+            reads["no_wall"] += 1
     return {
         "all": {
             "bars": n,
+            "book_present": book_present,
             "evaluated": evaluated,
             "not_evaluated": n - evaluated,
-            "reason": "no_l2",
+            "reason": "ok" if evaluated else "no_l2",
+            **reads,
         }
     }
 
@@ -411,6 +439,8 @@ def screen_g(bars: list[FrozenBar], rate: str, tick: float) -> dict[str, Any]:
 def run_screens(bars: list[FrozenBar], *, tick: float = 0.01, leave_bars: int = 1, trap_bars: int = 3) -> dict[str, Any]:
     if any((b.footprint.get("unfinished_is_entry") for b in bars)):
         raise ValueError("unfinished_is_entry must stay false")
+    f = screen_f(bars)
+    script_f = "computed" if f["all"]["evaluated"] else "not_evaluated"
     return {
         "bars": len(bars),
         "chosen_armed_rate": None,
@@ -419,7 +449,7 @@ def run_screens(bars: list[FrozenBar], *, tick: float = 0.01, leave_bars: int = 
         "copied_price_onto_okx": False,
         "script_g_is_entry": False,
         "script_e_reverse": False,
-        "script_f": "not_evaluated",
+        "script_f": script_f,
         "dale": {
             "A": screen_a(bars, "dale", leave_bars),
             "B": screen_b(bars, "dale", tick),
@@ -434,6 +464,6 @@ def run_screens(bars: list[FrozenBar], *, tick: float = 0.01, leave_bars: int = 
         },
         "C": screen_c(bars, trap_bars),
         "E": screen_e(bars),
-        "F": screen_f(bars),
+        "F": f,
         "note": "oos A–G on frozen snapshots; do not select 300 vs 400; live still gated",
     }
