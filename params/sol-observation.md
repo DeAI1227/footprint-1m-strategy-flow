@@ -307,3 +307,5 @@ SUI 驗證 A。SOL 的 `LEAVE_BARS=1` 不因 SUI 打穿 23% 而放寬。見 `par
 詳見 `params/sol-oos-shadow.md`。
 
 禁止項自檢：沒有選 300 或 400；沒有開 live；沒有把 p25 寫成口數；成交 JSONL 不進 git。
+
+同日稍後：同一 journal 跑 A–G 失效畫面。A 打穿 300=6%（3–15）∥ 400=3%（0–14），仍重疊。B 第二次打穿兩張表都 52%。C 收回 46%（TRAP=3）。G 延伸 57%。F 全 `not_evaluated`。句子層鍵不改。詳見 `params/sol-oos-scripts.md`。
