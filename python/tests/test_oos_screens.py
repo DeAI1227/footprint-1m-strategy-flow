@@ -122,10 +122,22 @@ class TestOosScreens(unittest.TestCase):
         self.assertEqual(f["eat_through"], 1)
         self.assertEqual(f["yield"], 2)
         self.assertEqual(f["reason"], "ok")
+        self.assertEqual(f["located"], 0)
         out = run_screens([a, b, c, d])
         self.assertEqual(out["script_f"], "computed")
         self.assertIsNone(out["chosen_armed_rate"])
         self.assertFalse(out["out_of_sample_validated"])
+
+        loc = _bar(4, high=1, low=0, close=1)
+        loc.book = {
+            "book_ok": True,
+            "read": "absorb",
+            "wall_on_poc": True,
+            "wall_on_stack": True,
+        }
+        fl = screen_f([loc])["all"]
+        self.assertEqual(fl["located"], 1)
+        self.assertEqual(fl["located_absorb"], 1)
 
     def test_unfinished_entry_flag_is_rejected(self):
         bar = _bar(0, high=1, low=0, close=1)

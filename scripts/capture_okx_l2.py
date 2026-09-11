@@ -52,12 +52,21 @@ async def run(args: argparse.Namespace) -> int:
             ],
         }
         await ws.send(json.dumps(sub))
+        last_ping = time.time()
         with trades_path.open("a") as tf, books_path.open("a") as bf:
             while time.time() < deadline:
                 try:
-                    raw = await asyncio.wait_for(ws.recv(), timeout=max(deadline - time.time(), 1))
+                    raw = await asyncio.wait_for(ws.recv(), timeout=10)
                 except asyncio.TimeoutError:
-                    break
+                    if time.time() >= deadline:
+                        break
+                    # OKX public WS wants a text ping at least every 30s.
+                    await ws.send("ping")
+                    last_ping = time.time()
+                    continue
+                if time.time() - last_ping >= 15:
+                    await ws.send("ping")
+                    last_ping = time.time()
                 if raw == "pong":
                     continue
                 if isinstance(raw, bytes):

@@ -332,8 +332,18 @@ def screen_f(bars: list[FrozenBar]) -> dict[str, Any]:
         "fake_wall": 0,
         "no_wall": 0,
     }
+    located = {
+        "eat_through": 0,
+        "yield": 0,
+        "absorb": 0,
+        "fake_wall": 0,
+        "no_wall": 0,
+    }
     evaluated = 0
     book_present = 0
+    wall_on_poc = 0
+    wall_on_stack = 0
+    located_n = 0
     for b in bars:
         book = b.book
         if not book:
@@ -345,12 +355,17 @@ def screen_f(bars: list[FrozenBar]) -> dict[str, Any]:
         raw = str(book.get("read") or "not_evaluated")
         if raw == "yielding":
             raw = "yield"
-        if raw in reads:
-            reads[raw] += 1
-        elif raw in {"not_evaluated", ""}:
-            reads["no_wall"] += 1
-        else:
-            reads["no_wall"] += 1
+        key = raw if raw in reads else "no_wall"
+        reads[key] += 1
+        on_poc = bool(book.get("wall_on_poc"))
+        on_stack = bool(book.get("wall_on_stack"))
+        if on_poc:
+            wall_on_poc += 1
+        if on_stack:
+            wall_on_stack += 1
+        if on_poc or on_stack:
+            located_n += 1
+            located[key] += 1
     return {
         "all": {
             "bars": n,
@@ -358,7 +373,15 @@ def screen_f(bars: list[FrozenBar]) -> dict[str, Any]:
             "evaluated": evaluated,
             "not_evaluated": n - evaluated,
             "reason": "ok" if evaluated else "no_l2",
+            "wall_on_poc": wall_on_poc,
+            "wall_on_stack": wall_on_stack,
+            "located": located_n,
             **reads,
+            "located_eat_through": located["eat_through"],
+            "located_yield": located["yield"],
+            "located_absorb": located["absorb"],
+            "located_fake_wall": located["fake_wall"],
+            "located_no_wall": located["no_wall"],
         }
     }
 
