@@ -86,6 +86,7 @@ PYTHONPATH=python python3 -m orderflow --calibrate-check
 | [params/sui-observation.md](params/sui-observation.md) | SUI 每日觀察日誌 |
 | [params/sui-oos-shadow.md](params/sui-oos-shadow.md) | SUI 樣本外影子統計（3332 根；桶 0.0001；仍不選邊；不准抄 SOL） |
 | [params/sui-oos-scripts.md](params/sui-oos-scripts.md) | SUI 樣本外 A–G（同一 journal；A 打穿兩張表都 17%；F 無 L2） |
+| [params/sol-l2-script-f.md](params/sol-l2-script-f.md) | SOL 第一次真 L2：F 能算；對上足跡的牆很少；不是 live |
 | [scripts/rebuild_sol_footprint_stats.py](scripts/rebuild_sol_footprint_stats.py) | 用 OKX 公共成交自組 1m 足跡 |
 | [scripts/recompute_days_2_7.py](scripts/recompute_days_2_7.py) | 一次重跑第 2–7 天校準表 |
 | [scripts/week2_scripts_a_g.py](scripts/week2_scripts_a_g.py) | 週 2：劇本 A–G 失敗畫面（F 因無 L2 標 not_evaluated） |
@@ -93,7 +94,8 @@ PYTHONPATH=python python3 -m orderflow --calibrate-check
 | [scripts/fetch_week3_inputs.py](scripts/fetch_week3_inputs.py) | 週 3 輸入：SUI 成交/K 線、OI、強平、Binance/Bybit 日檔 |
 | [scripts/fetch_okx_oos_windows.py](scripts/fetch_okx_oos_windows.py) | 樣本外：OKX 公開成交跳窗進 `/tmp`（`--inst` 可指 SUI；不進 git） |
 | [scripts/oos_shadow_from_journal.py](scripts/oos_shadow_from_journal.py) | 讀 Rust 凍結 journal 做時段影子表；不重算矩陣 |
-| [scripts/oos_scripts_from_journal.py](scripts/oos_scripts_from_journal.py) | 讀同一 journal 數 A–G 失效畫面；300∥400 並列 |
+| [scripts/capture_okx_l2.py](scripts/capture_okx_l2.py) | 公共 WS 錄 OKX 成交 + incremental books 進 `/tmp`（給腳本 F；不進 git） |
+| [scripts/oos_scripts_from_journal.py](scripts/oos_scripts_from_journal.py) | 讀同一 journal 數 A–G 失效畫面；300∥400 並列；有 `book_closed` 才數 F |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | 之後寫程式的階段計劃（參數沒填完禁止 live） |
 
 ## 派內眼睛（校準只動這些）
@@ -124,4 +126,4 @@ Market Profile / TPO、VWAP / AVWAP、Naked POC、Kill Zone / IPDA、布林 / �
 **階段 6**：OKX 盤口本地撮合、kill switch / 日虧 / 強平緩衝 / 降載；對帳以交易所為真。  
 **階段 7**：OKX 私有解碼與下單編碼；live 雙鎖；SUI 影子並行。  
 **階段 8**：東京運行面（熔斷、tick 重建該標的、漏棒）。  
-**階段 9**：填數字接口已留好。觀察稿不是樣本外驗證。SOL 與 SUI 樣本外都讀 Rust 已閉合 journal；SUI 用自己的 0.0001 表。A–G 失效畫面仍分不開 300 vs 400。**禁止 live。**
+**階段 9**：填數字接口已留好。觀察稿不是樣本外驗證。SOL 與 SUI 樣本外都讀 Rust 已閉合 journal；SUI 用自己的 0.0001 表。A–G 失效畫面仍分不開 300 vs 400。腳本 F 第一次真 L2（49 根亞盤）能算，對上足跡的牆很少，定義不改。**禁止 live。**

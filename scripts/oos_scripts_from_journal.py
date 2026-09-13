@@ -61,7 +61,7 @@ def main() -> int:
     print("# OOS A–G from frozen journal (not a second matrix)")
     print(f"# journal={args.journal} bars={out['bars']}")
     print("# chosen_armed_rate=None still_open=true out_of_sample_validated=false live=false")
-    print("# F=not_evaluated G_is_entry=false E_reverse=false")
+    print(f"# F={out['script_f']} G_is_entry=false E_reverse=false")
     print()
     for rate, title in (("dale", "300% Dale"), ("valtos", "400% Valtos")):
         print(f"===== {title} =====")
@@ -101,7 +101,18 @@ def main() -> int:
         f"first_dn={e['first_dn']} later_dn={e['later_dn']}"
     )
     print("===== F =====")
-    print(f"not_evaluated={out['F']['all']['not_evaluated']} reason=no_l2")
+    f = out["F"]["all"]
+    ev = int(f.get("evaluated") or 0)
+    print(
+        f"evaluated={ev} not_evaluated={f['not_evaluated']} reason={f.get('reason')} "
+        f"eat_through={f.get('eat_through', 0)} yield={f.get('yield', 0)} "
+        f"absorb={f.get('absorb', 0)} fake_wall={f.get('fake_wall', 0)} "
+        f"no_wall={f.get('no_wall', 0)} located={f.get('located', 0)} "
+        f"(poc={f.get('wall_on_poc', 0)} stack={f.get('wall_on_stack', 0)}; "
+        f"loc eat/yield/absorb/fake={f.get('located_eat_through', 0)}/"
+        f"{f.get('located_yield', 0)}/{f.get('located_absorb', 0)}/{f.get('located_fake_wall', 0)})"
+    )
+    print("# F is not an entry confirmation; yield is a veto; no volume-stack walls")
     print()
     print(json.dumps(out, ensure_ascii=False, indent=2, default=str))
     return 0

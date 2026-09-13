@@ -306,6 +306,14 @@ class TestScriptsBtoG(unittest.TestCase):
             )
         )
         self.assertEqual(d["scripts"]["F"]["evaluation"], "veto")
+        rust_yield = eng.step(
+            make(
+                30_000,
+                delta=-2,
+                book={"book_ok": True, "read": "yield", "wall_side": "bid"},
+            )
+        )
+        self.assertEqual(rust_yield["scripts"]["F"]["evaluation"], "veto")
         d2 = eng.step(
             make(
                 60_000,

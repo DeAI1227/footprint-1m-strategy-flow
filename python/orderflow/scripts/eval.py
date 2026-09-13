@@ -207,7 +207,8 @@ def eval_f(hist: list[FrozenBar], _params: dict[str, Any]) -> View:
     if not book or not book.get("book_ok"):
         return View("F", False, None, "not_evaluated", "no_l2", "沒有健康 L2，腳本 F 不作評", True)
     read = book.get("read")
-    if read == "yielding":
+    # Rust WallRead serializes as "yield"; older fixtures used "yielding".
+    if read in {"yield", "yielding"}:
         return View("F", False, None, "veto", "yield", "讓路突破否決，不走 F", True)
     if read != "eat_through":
         return View("F", False, None, "watch", "no_eat", "不是真吃牆", True)
