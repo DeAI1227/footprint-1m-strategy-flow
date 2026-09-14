@@ -112,7 +112,7 @@ def run(args: argparse.Namespace) -> int:
                         bf.write(raw if raw.endswith("\n") else raw + "\n")
                         n_bk += 1
                         bf.flush()
-                    if (n_tr + n_bk) % 400 == 0:
+                    if (n_tr + n_bk) % 2000 == 0:
                         print(
                             f"trades={n_tr} books={n_bk} now={iso(int(time.time() * 1000))}",
                             flush=True,
