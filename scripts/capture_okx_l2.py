@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,10 +32,20 @@ except ImportError:
 WS = "wss://ws.okx.com:8443/ws/v5/public"
 RECV_TIMEOUT_S = 12.0
 STALE_AFTER_S = 25.0
+HARD_STALE_S = 40.0
 
 
 def iso(ts_ms: int) -> str:
     return datetime.fromtimestamp(ts_ms / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def _hard_stale_watch(last_data: list[float], deadline: float) -> None:
+    """os._exit if recv/SSL blocks past the socket timeout. Daemon thread."""
+    while time.time() < deadline + 2:
+        time.sleep(5)
+        if time.time() - last_data[0] > HARD_STALE_S:
+            print("hard stale 40s, os._exit", flush=True)
+            os._exit(3)
 
 
 def run(args: argparse.Namespace) -> int:
@@ -57,6 +69,10 @@ def run(args: argparse.Namespace) -> int:
             ],
         }
     )
+    last_data = [time.time()]
+    threading.Thread(
+        target=_hard_stale_watch, args=(last_data, deadline), daemon=True
+    ).start()
     with trades_path.open("a") as tf, books_path.open("a") as bf:
         while time.time() < deadline:
             ws = None
@@ -64,7 +80,7 @@ def run(args: argparse.Namespace) -> int:
                 ws = websocket.create_connection(WS, timeout=RECV_TIMEOUT_S)
                 ws.settimeout(RECV_TIMEOUT_S)
                 ws.send(sub)
-                last_data = time.time()
+                last_data[0] = time.time()
                 last_ping = 0.0
                 print(f"ws connected now={iso(int(time.time() * 1000))}", flush=True)
                 while time.time() < deadline:
@@ -76,14 +92,14 @@ def run(args: argparse.Namespace) -> int:
                             print(f"ping send fail {e!r}", flush=True)
                             break
                         last_ping = now
-                    if now - last_data > STALE_AFTER_S:
+                    if now - last_data[0] > STALE_AFTER_S:
                         print("stale 25s, closing", flush=True)
                         break
                     try:
                         raw = ws.recv()
                     except websocket.WebSocketTimeoutException:
                         continue
-                    last_data = time.time()
+                    last_data[0] = time.time()
                     if raw == "pong":
                         continue
                     if isinstance(raw, bytes):
