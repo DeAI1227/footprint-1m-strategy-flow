@@ -49,6 +49,7 @@ PYTHONPATH=python python3 -m orderflow --calibrate-check
 | 路徑 | 用途 |
 |---|---|
 | [specs/orderflow-footprint-school-guide.md](specs/orderflow-footprint-school-guide.md) | 流派本身：語言、讀圖、誤用 |
+| [specs/nine-layers-and-simple-kline.md](specs/nine-layers-and-simple-kline.md) | 九層數據（OI / 費率 / 多空 / CVD / 量 / 足跡 / 熱圖 / 即時強平 / 現貨牆）與簡單 K 線的對讀；主例是掃流動性 = 腳本 C，制度層只否決 |
 | [specs/orderflow-1m-tokyo-system-elements.md](specs/orderflow-1m-tokyo-system-elements.md) | 系統元素與契約（東京、1m、三所、腳本 A–G） |
 | [specs/orderflow-rust-python-boundary.md](specs/orderflow-rust-python-boundary.md) | Rust 熱路徑 / Python 句子層；Binance、OKX、Bybit |
 | [specs/school-elements-expert-parameters.md](specs/school-elements-expert-parameters.md) | 專家出廠與教材數字（有出處，不編 SOL 常數） |
